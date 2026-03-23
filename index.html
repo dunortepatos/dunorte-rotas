@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dunorte • Sistema de Pedidos e Rotas PRO</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="loginScreen" class="screen center-screen">
+      <div class="login-card glass">
+        <div class="brand-row">
+          <div class="brand-badge">🌳</div>
+          <div>
+            <h1>DUNORTE</h1>
+            <p>SISTEMA DE PEDIDOS E ROTAS PRO</p>
+          </div>
+        </div>
+
+        <form id="loginForm" class="login-form">
+          <div class="field">
+            <label for="loginUser">Usuário</label>
+            <input id="loginUser" type="text" placeholder="Digite o usuário" required />
+          </div>
+          <div class="field">
+            <label for="loginPass">Senha</label>
+            <input id="loginPass" type="password" placeholder="Digite a senha" required />
+          </div>
+          <button class="btn btn-primary" type="submit">Entrar</button>
+          <p class="login-help">Padrão inicial: usuário <strong>admin</strong> e senha <strong>1234</strong>.</p>
+        </form>
+      </div>
+    </section>
+
+    <section id="dashboardScreen" class="screen hidden">
+      <header class="topbar glass">
+        <div>
+          <div class="top-mini">PAINEL ADMIN</div>
+          <h2>Pedidos e Rotas</h2>
+          <p>Cadastro, edição, fotos, rota para WhatsApp e gerenciamento completo.</p>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="btnNovoPedido" class="btn btn-light">Novo pedido</button>
+          <button id="btnExportar" class="btn btn-light">Exportar JSON</button>
+          <label class="btn btn-light file-btn">
+            Importar JSON
+            <input type="file" id="inputImportar" accept=".json" hidden />
+          </label>
+          <button id="btnLogout" class="btn btn-danger">Sair</button>
+        </div>
+      </header>
+
+      <main class="main-layout">
+        <section class="panel glass form-panel">
+          <div class="panel-header">
+            <h3 id="formTitle">Novo pedido</h3>
+            <span id="editingBadge" class="pill hidden">Editando</span>
+          </div>
+
+          <form id="pedidoForm">
+            <input type="hidden" id="pedidoId" />
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="loja">Loja</label>
+                <select id="loja" required>
+                  <option value="">Selecione</option>
+                  <option value="Patos de Minas">Patos de Minas</option>
+                  <option value="Campina Verde">Campina Verde</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="status">Status</label>
+                <select id="status" required>
+                  <option value="AGUARDANDO">AGUARDANDO</option>
+                  <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
+                  <option value="ENTREGUE">ENTREGUE</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="numeroPedido">Número do pedido</label>
+                <input id="numeroPedido" type="text" placeholder="Ex.: 2580" required />
+              </div>
+              <div class="field">
+                <label for="nomeCliente">Nome do cliente</label>
+                <input id="nomeCliente" type="text" placeholder="Ex.: João da Silva" required />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="cidade">Cidade</label>
+                <input id="cidade" type="text" required />
+              </div>
+              <div class="field">
+                <label for="bairro">Bairro</label>
+                <input id="bairro" type="text" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="endereco">Endereço</label>
+              <input id="endereco" type="text" placeholder="Rua, número, complemento" required />
+            </div>
+
+            <div class="field">
+              <div class="section-line">
+                <label>Contatos</label>
+                <button type="button" id="btnAddContato" class="link-action">+ Adicionar contato</button>
+              </div>
+              <div id="listaContatos" class="stack"></div>
+            </div>
+
+            <div class="field">
+              <div class="section-line">
+                <label>Itens do pedido</label>
+                <button type="button" id="btnAddItem" class="link-action">+ Adicionar item</button>
+              </div>
+              <div id="listaItens" class="stack"></div>
+            </div>
+
+            <div class="field">
+              <label>Fotos do pedido</label>
+              <input id="fotosPedido" type="file" accept="image/*" multiple />
+              <small>As imagens ficam salvas no navegador. Use com moderação para não pesar.</small>
+              <div id="previewFotos" class="photo-grid"></div>
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label for="valorTotal">Valor total</label>
+                <input id="valorTotal" type="text" inputmode="decimal" placeholder="0,00" />
+              </div>
+              <div class="field">
+                <label for="valorEntrada">Entrada</label>
+                <input id="valorEntrada" type="text" inputmode="decimal" placeholder="0,00" />
+              </div>
+              <div class="field">
+                <label for="valorReceber">A receber</label>
+                <input id="valorReceber" type="text" readonly />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field hidden" id="blocoFormaReceber">
+                <label for="formaReceber">Forma de pagamento a receber</label>
+                <select id="formaReceber">
+                  <option value="">Selecione</option>
+                  <option value="DINHEIRO">DINHEIRO</option>
+                  <option value="TRANSFERENCIA">TRANSFERÊNCIA</option>
+                  <option value="PIX">PIX</option>
+                  <option value="CARTAO">CARTÃO</option>
+                  <option value="CHEQUE">CHEQUE</option>
+                  <option value="CREDIARIO">CREDIÁRIO</option>
+                </select>
+              </div>
+
+              <div class="field hidden" id="blocoBancoOuDetalhe">
+                <label for="bancoOuObsPagamento">Banco / detalhe</label>
+                <input id="bancoOuObsPagamento" type="text" placeholder="Ex.: Sicredi" />
+              </div>
+            </div>
+
+            <div class="field hidden" id="blocoParcelamento">
+              <label for="parcelamento">Parcelamento</label>
+              <select id="parcelamento">
+                <option value="">Selecione</option>
+                <option value="À vista">À vista</option>
+                <option value="2x">2x</option>
+                <option value="3x">3x</option>
+                <option value="4x">4x</option>
+                <option value="5x">5x</option>
+                <option value="6x">6x</option>
+                <option value="7x">7x</option>
+                <option value="8x">8x</option>
+                <option value="9x">9x</option>
+                <option value="10x">10x</option>
+                <option value="11x">11x</option>
+                <option value="12x">12x</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="observacoes">Observações</label>
+              <textarea id="observacoes" rows="4"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Salvar pedido</button>
+              <button class="btn btn-light hidden" type="button" id="btnCancelarEdicao">Cancelar edição</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel glass list-panel">
+          <div class="panel-header flex-wrap">
+            <h3>Pedidos salvos</h3>
+            <div class="toolbar">
+              <input id="busca" type="text" placeholder="Buscar cliente, cidade, pedido..." />
+              <select id="filtroStatus">
+                <option value="">Todos os status</option>
+                <option value="AGUARDANDO">AGUARDANDO</option>
+                <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
+                <option value="ENTREGUE">ENTREGUE</option>
+              </select>
+              <select id="filtroLoja">
+                <option value="">Todas as lojas</option>
+                <option value="Patos de Minas">Patos de Minas</option>
+                <option value="Campina Verde">Campina Verde</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="route-bar">
+            <input id="dataRota" type="date" />
+            <button id="btnRotaWhatsapp" class="btn btn-primary">Rota para WhatsApp</button>
+            <button id="btnImprimirRota" class="btn btn-light">Imprimir rota</button>
+          </div>
+
+          <div id="statsBar" class="stats-bar"></div>
+          <div id="listaPedidos" class="orders-list empty-state"></div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <template id="tplContato">
+    <div class="repeat-line">
+      <input type="text" class="contato-input" placeholder="Nome / telefone / observação" />
+      <button type="button" class="icon-btn remove-btn">×</button>
+    </div>
+  </template>
+
+  <template id="tplItem">
+    <div class="item-card">
+      <div class="item-top">
+        <div class="field qty-field">
+          <label>Qtd.</label>
+          <input type="number" min="1" class="item-qtd" value="1" />
+        </div>
+        <div class="field grow">
+          <label>Item</label>
+          <input type="text" class="item-nome" list="itensSugestoes" placeholder="Ex.: Mesa" />
+        </div>
+        <button type="button" class="icon-btn remove-btn">×</button>
+      </div>
+      <div class="field">
+        <label>Descrição</label>
+        <input type="text" class="item-desc" placeholder="Detalhes do item" />
+      </div>
+    </div>
+  </template>
+
+  <datalist id="itensSugestoes">
+    <option value="Mesa"></option>
+    <option value="Aparador"></option>
+    <option value="Prancha"></option>
+    <option value="Cadeira"></option>
+    <option value="Cama"></option>
+    <option value="Banqueta"></option>
+    <option value="Banco"></option>
+    <option value="Tábua de Churrasco"></option>
+  </datalist>
+
+  <script src="app.js"></script>
+</body>
+</html>
