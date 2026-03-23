@@ -56,3 +56,10 @@ Se você quiser depois, a próxima evolução é:
 - sincronização entre lojas
 - cadastro de vendedores
 - painel financeiro separado
+
+
+ATUALIZAÇÃO:
+- impressão compacta para rota
+- remove na impressão: subtítulo do card, badges, fotos e link do Maps
+- reduz espaçamentos e fontes para caber mais pedidos por página
+- objetivo: cerca de 6 a 8 pedidos por folha A4, dependendo do tamanho dos itens/observações
