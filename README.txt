@@ -1,65 +1,51 @@
-DUNORTE • SISTEMA DE PEDIDOS E ROTAS PRO
+DUNORTE • V2 COM CARDS + MODAL
 
-ARQUIVOS:
+ARQUIVOS PRONTOS:
 - index.html
 - styles.css
 - app.js
 
-O QUE ESTA VERSÃO TEM:
-- login simples local
-- painel admin visual mais profissional
-- cadastro e edição de pedidos
-- múltiplos contatos
-- múltiplos itens
-- upload de fotos dos pedidos
-- status AGUARDANDO / EM ROTA DE ENTREGA / ENTREGUE
-- resumo da rota para WhatsApp
-- impressão da rota
-- filtros por status, loja e busca
-- exportar/importar JSON
-- ordem manual com subir/descer
+MUDANÇAS FEITAS:
+- cards pequenos no resumo dos pedidos
+- cada card mostra só:
+  - nome do cliente
+  - cidade
+  - itens
+- clique no card abre um modal com os detalhes completos
+- blocos TOTAL / AGUARDANDO / EM ROTA / ENTREGUES viraram filtros clicáveis
+- cor do card por status:
+  - AGUARDANDO = branco
+  - EM ROTA DE ENTREGA = azul clarinho
+  - ENTREGUE = verde clarinho
+- impressão continua compacta
 
-LOGIN PADRÃO:
-- usuário: admin
-- senha: 1234
+ONDE COLAR:
+Se o seu projeto da versão 2 está na raiz do repositório, substitua exatamente estes arquivos:
+- index.html
+- styles.css
+- app.js
 
-COMO USAR:
-1) Coloque os 3 arquivos na mesma pasta.
-2) Abra o arquivo index.html no navegador.
-3) O sistema salva no navegador usando localStorage.
-4) Para mudar de computador ou fazer backup:
-   - exporte o JSON
-   - depois importe no outro dispositivo
+Exemplo:
+/
+  index.html
+  styles.css
+  app.js
 
-SOBRE AS FOTOS:
-- ficam salvas no navegador
-- se colocar fotos demais, o sistema pode ficar pesado
-- o ideal é usar fotos comprimidas
+COMO SUBIR NO GITHUB:
+1) Baixe este zip.
+2) Extraia.
+3) Copie os 3 arquivos.
+4) Cole por cima dos arquivos antigos na pasta do projeto.
+5) Abra o projeto no VS Code e salve.
 
-HOSPEDAGEM ONLINE:
-Você pode subir isso facilmente em:
-- GitHub Pages
-- Netlify
-- Vercel
+PELO GITHUB DESKTOP:
+- veja os arquivos alterados
+- faça o commit
+- clique em Push origin
 
-FORMA MAIS SIMPLES:
-1) crie uma pasta com os 3 arquivos
-2) envie para um repositório no GitHub
-3) ative o GitHub Pages
-4) o sistema ficará online por link
+PELO TERMINAL:
+git add .
+git commit -m "Atualiza layout de cards com modal e filtros"
+git push
 
-IMPORTANTE:
-Esse login é simples e local, ótimo para uso interno básico.
-Se você quiser depois, a próxima evolução é:
-- login real com usuários diferentes
-- banco de dados online
-- sincronização entre lojas
-- cadastro de vendedores
-- painel financeiro separado
-
-
-ATUALIZAÇÃO:
-- impressão compacta para rota
-- remove na impressão: subtítulo do card, badges, fotos e link do Maps
-- reduz espaçamentos e fontes para caber mais pedidos por página
-- objetivo: cerca de 6 a 8 pedidos por folha A4, dependendo do tamanho dos itens/observações
+Depois disso o GitHub Pages atualiza sozinho.
