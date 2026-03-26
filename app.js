@@ -681,47 +681,20 @@ function gerarHTMLRotaImpressao(pedidos, data) {
   const pedidosEntrega = pedidos.filter(p => !p.retiradaLojaAtiva);
   const pedidosRetirada = pedidos.filter(p => p.retiradaLojaAtiva);
 
-  function renderCard(p, isRetirada = false) {
+  function renderCard(p) {
     const itens = (p.itens || []).map(item => `
       <div class="item-row"><span class="${item.destacarNaImpressao ? "hl-text" : ""}"><strong>${escapeHtml(`${item.quantidade} ${pluralizeItem(item.nome, item.quantidade)}`)}</strong>${item.descricao ? ` ${escapeHtml(item.descricao)}` : ""}</span></div>
     `).join("");
 
-    const enderecoPartes = isRetirada
-      ? [p.endereco?.trim(), p.bairro ? `Bairro: ${p.bairro}` : "", p.cidade ? `Cidade: ${p.cidade}` : ""].filter(Boolean).join("   ")
-      : [p.endereco?.trim(), p.bairro ? `Bairro: ${p.bairro}` : "", p.cidade ? `Cidade: ${p.cidade}` : ""].filter(Boolean).join("   ");
-
-    if (isRetirada) {
-      return `
-        <article class="print-card retirada-card">
-          <div class="print-head retirada-head">
-            <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")} <span class="retirada-date ${getPrintHighlightClass(p, "dataPedido")}">• ${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
-            <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
-          </div>
-          <div class="meta-grid retirada-meta-grid">
-            ${p.retiradaLojaAtiva ? `<div class="line"><strong>Retirar em:</strong> <span>${escapeHtml(p.retiradaLojaLocal || "-")}</span></div>` : ""}
-          </div>
-          <div class="line endereco-line ${getPrintHighlightClass(p, "endereco")} ${getPrintHighlightClass(p, "bairro")} ${getPrintHighlightClass(p, "cidade")}"><strong>Endereço:</strong> <span>${escapeHtml(enderecoPartes || "-")}</span></div>
-          ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> <span>${escapeHtml(p.contatos.join(" | "))}</span></div>` : ""}
-          <div class="section-title">Itens</div>
-          <div class="items-block">${itens}</div>
-          <div class="section-title">Financeiro</div>
-          <div class="finance-block">${renderPrintFinanceiro(p)}</div>
-          ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs"><span class="${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</span></div>` : ""}
-        </article>
-      `;
-    }
+    const enderecoPartes = [p.endereco?.trim(), p.bairro ? `Bairro: ${p.bairro}` : "", p.cidade ? `Cidade: ${p.cidade}` : ""].filter(Boolean).join("   ");
 
     return `
       <article class="print-card">
         <div class="print-head">
-          <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")}</div>
+          <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")} <span class="retirada-date ${getPrintHighlightClass(p, "dataPedido")}">• ${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
           <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
         </div>
-        <div class="meta-grid">
-          <div class="line ${getPrintHighlightClass(p, "loja")}"><strong>Loja:</strong> <span>${escapeHtml(p.loja || "-")}</span></div>
-          <div class="line ${getPrintHighlightClass(p, "dataPedido")}"><strong>Data:</strong> <span>${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
-          <div class="line ${getPrintHighlightClass(p, "status")}"><strong>Status:</strong> <span>${escapeHtml(p.status || "-")}</span></div>
-        </div>
+        ${p.retiradaLojaAtiva ? `<div class="line"><strong>Retirar em:</strong> <span>${escapeHtml(p.retiradaLojaLocal || "-")}</span></div>` : ""}
         <div class="line endereco-line ${getPrintHighlightClass(p, "endereco")} ${getPrintHighlightClass(p, "bairro")} ${getPrintHighlightClass(p, "cidade")}"><strong>Endereço:</strong> <span>${escapeHtml(enderecoPartes || "-")}</span></div>
         ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> <span>${escapeHtml(p.contatos.join(" | "))}</span></div>` : ""}
         <div class="section-title">Itens</div>
@@ -733,8 +706,8 @@ function gerarHTMLRotaImpressao(pedidos, data) {
     `;
   }
 
-  const cardsEntrega = pedidosEntrega.map(p => renderCard(p, false)).join("");
-  const cardsRetirada = pedidosRetirada.map(p => renderCard(p, true)).join("");
+  const cardsEntrega = pedidosEntrega.map(renderCard).join("");
+  const cardsRetirada = pedidosRetirada.map(renderCard).join("");
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -759,16 +732,12 @@ function gerarHTMLRotaImpressao(pedidos, data) {
   .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; align-items:flex-start; }
   .client { font-size:12px; font-weight:700; line-height:1.15; }
   .pedido-num { font-size:10px; text-align:right; white-space:nowrap; }
-  .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin-bottom:4px; }
   .line, .obs, .item-row { font-size:9.4px; line-height:1.24; padding:1px 0; }
   .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:6px 0 2px; color:#333; }
   .items-block, .finance-block { display:flex; flex-direction:column; gap:2px; }
   .obs { color:#9b1c1c; font-weight:600; }
   .hl-text { background: var(--lime); display:inline; padding:1px 3px; border-radius:2px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
-  .retirada-group { margin-top: 12px; padding-top: 8px; border-top: 1px solid #444; }
-  .retirada-head { margin-bottom: 4px; }
-  .retirada-date { font-weight: 700; }
-  .retirada-meta-grid { display:block; margin-bottom: 3px; }
+  .retirada-group { margin-top: 10px; }
   @media print { html, body { width: 210mm; height: 297mm; } }
 </style>
 </head>
