@@ -135,7 +135,7 @@ const refs = {
   dataPedido: $("dataPedido"),
   loja: $("loja"), status: $("status"),
   numeroPedido: $("numeroPedido"), nomeCliente: $("nomeCliente"),
-  cidade: $("cidade"), bairro: $("bairro"), endereco: $("endereco"),
+  cidade: $("cidade"), bairro: $("bairro"), endereco: $("endereco"), mapsShareLink: $("mapsShareLink"),
   retiradaLojaAtiva: $("retiradaLojaAtiva"), retiradaLojaLocal: $("retiradaLojaLocal"), retiradaLojaSelectWrap: $("retiradaLojaSelectWrap"),
   listaContatos: $("listaContatos"), listaItens: $("listaItens"),
   valorTotal: $("valorTotal"), valorEntrada: $("valorEntrada"), valorReceber: $("valorReceber"),
@@ -316,6 +316,7 @@ async function collectForm() {
     cidade:            refs.cidade.value.trim(),
     bairro:            refs.bairro.value.trim(),
     endereco:          refs.endereco.value.trim(),
+    mapsShareLink:     refs.mapsShareLink?.value.trim() || "",
     retiradaLojaAtiva: !!refs.retiradaLojaAtiva.checked,
     retiradaLojaLocal: refs.retiradaLojaAtiva.checked ? refs.retiradaLojaLocal.value : "",
     contatos, itens, fotos: original?.fotos || [],
@@ -356,6 +357,7 @@ function resetForm() {
   refs.blocoParcelamento.classList.add("hidden");
   if (refs.retiradaLojaAtiva) refs.retiradaLojaAtiva.checked = false;
   if (refs.retiradaLojaLocal) refs.retiradaLojaLocal.value = "";
+  if (refs.mapsShareLink) refs.mapsShareLink.value = "";
   if (refs.retiradaLojaSelectWrap) refs.retiradaLojaSelectWrap.classList.add("hidden");
   resetHighlights();
 }
@@ -370,6 +372,7 @@ function fillForm(pedido) {
   refs.cidade.value          = pedido.cidade || "";
   refs.bairro.value          = pedido.bairro || "";
   refs.endereco.value        = pedido.endereco || "";
+  if (refs.mapsShareLink) refs.mapsShareLink.value = pedido.mapsShareLink || "";
   if (refs.retiradaLojaAtiva) refs.retiradaLojaAtiva.checked = !!pedido.retiradaLojaAtiva;
   if (refs.retiradaLojaLocal) refs.retiradaLojaLocal.value = pedido.retiradaLojaLocal || "";
   if (refs.retiradaLojaSelectWrap) refs.retiradaLojaSelectWrap.classList.toggle("hidden", !pedido.retiradaLojaAtiva);
@@ -517,7 +520,7 @@ async function abrirPedidoModal(id) {
           <p><strong>Cidade:</strong> ${escapeHtml(pedido.cidade||"-")}</p>
           <p><strong>Bairro:</strong> ${escapeHtml(pedido.bairro||"-")}</p>
           <p><strong>Endereço:</strong> ${escapeHtml(pedido.endereco||"-")}</p>
-          <p><strong>Maps:</strong> <a href="${mapsLink(pedido)}" target="_blank" rel="noopener">Abrir localização</a></p>
+          <p><strong>Maps:</strong> <a href="${getRouteLink(pedido)}" target="_blank" rel="noopener">Abrir localização</a></p>
           ${pedido.contatos?.length ? `<p><strong>Contatos:</strong> ${escapeHtml(pedido.contatos.join(" • "))}</p>` : ""}
           ${pedido.retiradaLojaAtiva ? `<p><strong>Retirada do cliente em:</strong> ${escapeHtml(pedido.retiradaLojaLocal || "-")}</p>` : ""}
         </div>
@@ -629,7 +632,7 @@ function orderWhatsAppText(p) {
   if (p.valorReceber > 0) lines.push(`A receber: ${formatMoney(p.valorReceber)}`);
   if (p.formaReceber) lines.push(`Pagamento a receber: ${paymentText(p)}`);
   if (p.observacoes) lines.push("",`Obs.: ${p.observacoes}`);
-  lines.push("",`Maps: ${mapsLink(p)}`);
+  lines.push("",`Maps: ${getRouteLink(p)}`);
   return lines.join("\n");
 }
 
@@ -691,10 +694,15 @@ function gerarHTMLRotaImpressao(pedidos, data) {
     return `
       <article class="print-card">
         <div class="print-head">
-          <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")} <span class="retirada-date ${getPrintHighlightClass(p, "dataPedido")}">• ${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
+          <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")}</div>
           <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
         </div>
-        ${p.retiradaLojaAtiva ? `<div class="line"><strong>Retirar em:</strong> <span>${escapeHtml(p.retiradaLojaLocal || "-")}</span></div>` : ""}
+        <div class="meta-grid">
+          <div class="line ${getPrintHighlightClass(p, "loja")}"><strong>Loja:</strong> <span>${escapeHtml(p.loja || "-")}</span></div>
+          <div class="line ${getPrintHighlightClass(p, "dataPedido")}"><strong>Data:</strong> <span>${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
+          <div class="line ${getPrintHighlightClass(p, "status")}"><strong>Status:</strong> <span>${escapeHtml(p.status || "-")}</span></div>
+          ${p.retiradaLojaAtiva ? `<div class="line"><strong>Retirar em:</strong> <span>${escapeHtml(p.retiradaLojaLocal || "-")}</span></div>` : ""}
+        </div>
         <div class="line endereco-line ${getPrintHighlightClass(p, "endereco")} ${getPrintHighlightClass(p, "bairro")} ${getPrintHighlightClass(p, "cidade")}"><strong>Endereço:</strong> <span>${escapeHtml(enderecoPartes || "-")}</span></div>
         ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> <span>${escapeHtml(p.contatos.join(" | "))}</span></div>` : ""}
         <div class="section-title">Itens</div>
@@ -732,6 +740,7 @@ function gerarHTMLRotaImpressao(pedidos, data) {
   .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; align-items:flex-start; }
   .client { font-size:12px; font-weight:700; line-height:1.15; }
   .pedido-num { font-size:10px; text-align:right; white-space:nowrap; }
+  .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin-bottom:4px; }
   .line, .obs, .item-row { font-size:9.4px; line-height:1.24; padding:1px 0; }
   .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:6px 0 2px; color:#333; }
   .items-block, .finance-block { display:flex; flex-direction:column; gap:2px; }
