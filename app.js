@@ -137,7 +137,6 @@ const refs = {
   numeroPedido: $("numeroPedido"), nomeCliente: $("nomeCliente"),
   cidade: $("cidade"), bairro: $("bairro"), endereco: $("endereco"),
   listaContatos: $("listaContatos"), listaItens: $("listaItens"),
-  fotosPedido: $("fotosPedido"), previewFotos: $("previewFotos"),
   valorTotal: $("valorTotal"), valorEntrada: $("valorEntrada"), valorReceber: $("valorReceber"),
   formaReceber: $("formaReceber"), bancoOuObsPagamento: $("bancoOuObsPagamento"),
   parcelamento: $("parcelamento"),
@@ -286,30 +285,8 @@ refs.btnAddItem.addEventListener("click", () => addItem());
 refs.btnNovoPedido.addEventListener("click", resetForm);
 refs.btnCancelarEdicao.addEventListener("click", resetForm);
 
-// ─── Fotos ────────────────────────────────────────────────────────────
-refs.fotosPedido.addEventListener("change", async (e) => {
-  const files = [...(e.target.files || [])];
-  for (const file of files) fotosAtuais.push(await fileToBase64(file));
-  renderPhotoPreview(); refs.fotosPedido.value = "";
-});
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-function renderPhotoPreview() {
-  refs.previewFotos.innerHTML = "";
-  fotosAtuais.forEach((src, index) => {
-    const div = document.createElement("div");
-    div.className = "photo-thumb";
-    div.innerHTML = `<img src="${src}" alt="Foto do pedido"><button type="button">×</button>`;
-    div.querySelector("button").addEventListener("click", () => { fotosAtuais.splice(index,1); renderPhotoPreview(); });
-    refs.previewFotos.appendChild(div);
-  });
-}
+// ─── Fotos (removido do cadastro) ────────────────────────────────────────
+function renderPhotoPreview() {}
 
 // ─── Coleta do formulário ─────────────────────────────────────────────
 async function collectForm() {
@@ -334,7 +311,7 @@ async function collectForm() {
     cidade:            refs.cidade.value.trim(),
     bairro:            refs.bairro.value.trim(),
     endereco:          refs.endereco.value.trim(),
-    contatos, itens, fotos: fotosAtuais,
+    contatos, itens, fotos: original?.fotos || [],
     valorTotal:        parseMoney(refs.valorTotal.value),
     valorEntrada:      parseMoney(refs.valorEntrada.value),
     valorReceber:      parseMoney(refs.valorReceber.value),
@@ -366,7 +343,6 @@ function resetForm() {
   refs.editingBadge.classList.add("hidden");
   refs.btnCancelarEdicao.classList.add("hidden");
   clearRepeats(); addContato(); addItem();
-  fotosAtuais = []; renderPhotoPreview();
   refs.valorReceber.value = "";
   refs.blocoFormaReceber.classList.add("hidden");
   refs.blocoBancoOuDetalhe.classList.add("hidden");
@@ -394,7 +370,6 @@ function fillForm(pedido) {
   clearRepeats();
   (pedido.contatos?.length ? pedido.contatos : [""]).forEach(addContato);
   (pedido.itens?.length ? pedido.itens : [null]).forEach(addItem);
-  fotosAtuais = [...(pedido.fotos || [])]; renderPhotoPreview();
   updateReceber(); updatePayFields();
   setHighlightsFromPedido(pedido);
   refs.formTitle.textContent = "Editar pedido";
@@ -443,10 +418,10 @@ function renderStats(todosPedidos) {
   const stats = [
     {label:"Total", value:total, filter:""},
     {label:"Aguardando", value:aguardando, filter:"AGUARDANDO"},
-    {label:"Em rota", value:emRota, filter:"EM ROTA DE ENTREGA"},
-    {label:"Entregues", value:entregue, filter:"ENTREGUE"},
     {label:"Entrega futura", value:entregaFutura, filter:"ENTREGA FUTURA"},
-    {label:"Retirada", value:retirada, filter:"RETIRADA"}
+    {label:"Retirada", value:retirada, filter:"RETIRADA"},
+    {label:"Em rota", value:emRota, filter:"EM ROTA DE ENTREGA"},
+    {label:"Entregues", value:entregue, filter:"ENTREGUE"}
   ];
   refs.statsBar.innerHTML = stats.map(stat => `
     <button type="button" class="stat-card filtro-card ${refs.filtroStatus.value===stat.filter ? "ativo" : ""}" data-filter="${stat.filter}">
@@ -551,11 +526,10 @@ async function abrirPedidoModal(id) {
             </div>
           `).join("")}
         </div>
-        ${pedido.fotos?.length ? `<div class="order-photo-cover">${pedido.fotos.map(src=>`<img src="${src}" alt="Foto do pedido">`).join("")}</div>` : ""}
       </div>
       <div class="order-actions">
         <button class="btn-mini" data-modal-action="editar">Editar</button>
-        <button class="btn-mini" data-modal-action="status">Mover status</button>
+        <button class="btn-mini" data-modal-action="status">Alterar status</button>
         <button class="btn-mini" data-modal-action="whatsapp">WhatsApp</button>
         <button class="btn-mini danger" data-modal-action="excluir">Excluir</button>
         <div class="sort-box">
@@ -575,10 +549,32 @@ refs.pedidoModalBackdrop.addEventListener("click", fecharPedidoModal);
 refs.fecharPedidoModal.addEventListener("click", fecharPedidoModal);
 
 // ─── Ações do card ────────────────────────────────────────────────────
-function nextStatus(atual) {
-  const fluxo = ["AGUARDANDO", "EM ROTA DE ENTREGA", "ENTREGUE", "ENTREGA FUTURA", "RETIRADA"];
-  const idx = fluxo.indexOf(atual);
-  return fluxo[(idx + 1) % fluxo.length];
+const STATUS_OPTIONS = ["AGUARDANDO", "ENTREGA FUTURA", "RETIRADA", "EM ROTA DE ENTREGA", "ENTREGUE"];
+
+function showStatusSelectDialog(currentStatus) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "status-select-overlay";
+    overlay.innerHTML = `
+      <div class="status-select-card">
+        <h3>Alterar status</h3>
+        <select id="statusDialogSelect" class="status-select-input">
+          ${STATUS_OPTIONS.map(status => `<option value="${status}" ${status === currentStatus ? "selected" : ""}>${status}</option>`).join("")}
+        </select>
+        <div class="status-select-actions">
+          <button type="button" class="btn btn-light" data-action="cancelar">Cancelar</button>
+          <button type="button" class="btn btn-primary" data-action="confirmar">Salvar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const cleanup = (value) => { overlay.remove(); resolve(value); };
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) cleanup(null);
+    });
+    overlay.querySelector('[data-action="cancelar"]').addEventListener("click", () => cleanup(null));
+    overlay.querySelector('[data-action="confirmar"]').addEventListener("click", () => cleanup(overlay.querySelector("#statusDialogSelect").value));
+  });
 }
 async function handleCardAction(id, action) {
   const todos = await getPedidos();
@@ -586,7 +582,15 @@ async function handleCardAction(id, action) {
   if (i < 0) return;
   if (action === "editar")   { fillForm(todos[i]); return; }
   if (action === "excluir")  { if (!confirm("Deseja excluir este pedido?")) return; await deletePedido(id); await renderAll(); return; }
-  if (action === "status")   { todos[i].status = nextStatus(todos[i].status); todos[i].atualizadoEm = new Date().toISOString(); await savePedido(todos[i]); await renderAll(); return; }
+  if (action === "status") {
+    const novoStatus = await showStatusSelectDialog(todos[i].status);
+    if (!novoStatus || novoStatus === todos[i].status) return;
+    todos[i].status = novoStatus;
+    todos[i].atualizadoEm = new Date().toISOString();
+    await savePedido(todos[i]);
+    await renderAll();
+    return;
+  }
   if (action === "subir") {
     if (i === 0) return;
     [todos[i-1].ordem, todos[i].ordem] = [todos[i].ordem, todos[i-1].ordem];
@@ -639,7 +643,7 @@ refs.btnRotaWhatsapp.addEventListener("click", async () => {
 });
 
 function getPrintHighlightClass(pedido, field) {
-  return pedido.camposDestacados?.[field] ? "hl" : "";
+  return pedido.camposDestacados?.[field] ? "hl-text" : "";
 }
 
 function renderPrintFinanceiro(pedido) {
@@ -683,7 +687,7 @@ function gerarHTMLRotaImpressao(pedidos, data) {
         <div class="items-block">${itens}</div>
         <div class="section-title">Financeiro</div>
         <div class="finance-block">${renderPrintFinanceiro(p)}</div>
-        ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs ${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</div>` : ""}
+        ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs"><span class="${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</span></div>` : ""}
       </article>
     `;
   }).join("");
@@ -696,7 +700,7 @@ function gerarHTMLRotaImpressao(pedidos, data) {
 <title>Rota ${escapeHtml(formatDateBR(data))}</title>
 <style>
   @page { size: A4 portrait; margin: 15mm; }
-  :root { --paper-w: 180mm; --paper-h: 267mm; --lime: #d7ff37; }
+  :root { --paper-w: 180mm; --paper-h: 267mm; --lime: #eaff97; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -705,19 +709,19 @@ function gerarHTMLRotaImpressao(pedidos, data) {
   .header { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; margin-bottom:8px; }
   .header h1 { margin:0; font-size:16px; }
   .header .sub { font-size:10px; color:#444; }
-  .cards { display:grid; grid-template-columns:1fr 1fr; gap:6px; align-content:start; }
-  .print-card { border:1px solid #333; border-radius:8px; padding:7px; break-inside:avoid; background:#fff; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-content:start; }
+  .print-card { border:1px solid #333; border-radius:8px; padding:8px; break-inside:avoid; background:#fff; }
   .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:5px; align-items:flex-start; }
   .client { font-size:12px; font-weight:700; line-height:1.15; }
   .pedido-num { font-size:10px; text-align:right; }
   .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 6px; margin-bottom:4px; }
-  .line, .obs, .item-row { font-size:9.3px; line-height:1.18; padding:2px 3px; border-radius:4px; }
+  .line, .obs, .item-row { font-size:9.3px; line-height:1.2; padding:2px 0; border-radius:4px; }
   .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:5px 0 2px; color:#333; }
   .items-block, .finance-block { display:flex; flex-direction:column; gap:2px; }
   .item-row strong { display:block; font-size:9.3px; }
   .item-row span { display:block; }
   .obs { color:#9b1c1c; font-weight:600; }
-  .hl { background: var(--lime); }
+  .hl-text { background: var(--lime); display:inline; padding:0 3px; border-radius:3px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
   @media print { html, body { width: 210mm; height: 297mm; } .page { margin:0; } }
 </style>
 </head>
