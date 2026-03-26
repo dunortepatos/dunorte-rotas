@@ -136,6 +136,7 @@ const refs = {
   loja: $("loja"), status: $("status"),
   numeroPedido: $("numeroPedido"), nomeCliente: $("nomeCliente"),
   cidade: $("cidade"), bairro: $("bairro"), endereco: $("endereco"),
+  retiradaLojaAtiva: $("retiradaLojaAtiva"), retiradaLojaLocal: $("retiradaLojaLocal"), retiradaLojaSelectWrap: $("retiradaLojaSelectWrap"),
   listaContatos: $("listaContatos"), listaItens: $("listaItens"),
   valorTotal: $("valorTotal"), valorEntrada: $("valorEntrada"), valorReceber: $("valorReceber"),
   formaReceber: $("formaReceber"), bancoOuObsPagamento: $("bancoOuObsPagamento"),
@@ -284,6 +285,10 @@ refs.btnAddContato.addEventListener("click", () => addContato());
 refs.btnAddItem.addEventListener("click", () => addItem());
 refs.btnNovoPedido.addEventListener("click", resetForm);
 refs.btnCancelarEdicao.addEventListener("click", resetForm);
+refs.retiradaLojaAtiva?.addEventListener("change", () => {
+  refs.retiradaLojaSelectWrap.classList.toggle("hidden", !refs.retiradaLojaAtiva.checked);
+  if (!refs.retiradaLojaAtiva.checked) refs.retiradaLojaLocal.value = "";
+});
 
 // ─── Fotos (removido do cadastro) ────────────────────────────────────────
 function renderPhotoPreview() {}
@@ -311,6 +316,8 @@ async function collectForm() {
     cidade:            refs.cidade.value.trim(),
     bairro:            refs.bairro.value.trim(),
     endereco:          refs.endereco.value.trim(),
+    retiradaLojaAtiva: !!refs.retiradaLojaAtiva.checked,
+    retiradaLojaLocal: refs.retiradaLojaAtiva.checked ? refs.retiradaLojaLocal.value : "",
     contatos, itens, fotos: original?.fotos || [],
     valorTotal:        parseMoney(refs.valorTotal.value),
     valorEntrada:      parseMoney(refs.valorEntrada.value),
@@ -347,6 +354,9 @@ function resetForm() {
   refs.blocoFormaReceber.classList.add("hidden");
   refs.blocoBancoOuDetalhe.classList.add("hidden");
   refs.blocoParcelamento.classList.add("hidden");
+  if (refs.retiradaLojaAtiva) refs.retiradaLojaAtiva.checked = false;
+  if (refs.retiradaLojaLocal) refs.retiradaLojaLocal.value = "";
+  if (refs.retiradaLojaSelectWrap) refs.retiradaLojaSelectWrap.classList.add("hidden");
   resetHighlights();
 }
 
@@ -360,6 +370,9 @@ function fillForm(pedido) {
   refs.cidade.value          = pedido.cidade || "";
   refs.bairro.value          = pedido.bairro || "";
   refs.endereco.value        = pedido.endereco || "";
+  if (refs.retiradaLojaAtiva) refs.retiradaLojaAtiva.checked = !!pedido.retiradaLojaAtiva;
+  if (refs.retiradaLojaLocal) refs.retiradaLojaLocal.value = pedido.retiradaLojaLocal || "";
+  if (refs.retiradaLojaSelectWrap) refs.retiradaLojaSelectWrap.classList.toggle("hidden", !pedido.retiradaLojaAtiva);
   refs.valorTotal.value      = pedido.valorTotal ? pedido.valorTotal.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
   refs.valorEntrada.value    = pedido.valorEntrada ? pedido.valorEntrada.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
   refs.valorReceber.value    = pedido.valorReceber ? pedido.valorReceber.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
@@ -506,6 +519,7 @@ async function abrirPedidoModal(id) {
           <p><strong>Endereço:</strong> ${escapeHtml(pedido.endereco||"-")}</p>
           <p><strong>Maps:</strong> <a href="${mapsLink(pedido)}" target="_blank" rel="noopener">Abrir localização</a></p>
           ${pedido.contatos?.length ? `<p><strong>Contatos:</strong> ${escapeHtml(pedido.contatos.join(" • "))}</p>` : ""}
+          ${pedido.retiradaLojaAtiva ? `<p><strong>Retirada do cliente em:</strong> ${escapeHtml(pedido.retiradaLojaLocal || "-")}</p>` : ""}
         </div>
         <div class="box">
           <h5>Financeiro</h5>
@@ -622,7 +636,9 @@ function orderWhatsAppText(p) {
 // ─── Rota ─────────────────────────────────────────────────────────────
 async function routePedidos() {
   const todos = await getPedidos();
-  return todos.filter(p => p.status === "EM ROTA DE ENTREGA").sort((a,b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  return todos
+    .filter(p => p.status === "EM ROTA DE ENTREGA" || p.retiradaLojaAtiva)
+    .sort((a,b) => (a.ordem ?? 0) - (b.ordem ?? 0));
 }
 function routeItemSummary(items) {
   return `${TREE_EMOJI} ` + items.map(i => `${i.quantidade} ${pluralizeItem(i.nome, i.quantidade)}`).join(" + ");
@@ -647,13 +663,14 @@ function getPrintHighlightClass(pedido, field) {
 }
 
 function renderPrintFinanceiro(pedido) {
+  if ((pedido.valorReceber || 0) <= 0) {
+    return `<div class="line"><strong>Pago</strong></div>`;
+  }
   const linhas = [
     `<div class="line ${getPrintHighlightClass(pedido, "valorTotal")}"><strong>Total:</strong> ${escapeHtml(formatMoney(pedido.valorTotal))}</div>`,
-    `<div class="line ${getPrintHighlightClass(pedido, "valorEntrada")}"><strong>Entrada:</strong> ${escapeHtml(formatMoney(pedido.valorEntrada))}</div>`
+    `<div class="line ${getPrintHighlightClass(pedido, "valorEntrada")}"><strong>Entrada:</strong> ${escapeHtml(formatMoney(pedido.valorEntrada))}</div>`,
+    `<div class="line ${getPrintHighlightClass(pedido, "valorReceber")}"><strong>A receber:</strong> ${escapeHtml(formatMoney(pedido.valorReceber))}</div>`
   ];
-  if ((pedido.valorReceber || 0) > 0) {
-    linhas.push(`<div class="line ${getPrintHighlightClass(pedido, "valorReceber")}"><strong>A receber:</strong> ${escapeHtml(formatMoney(pedido.valorReceber))}</div>`);
-  }
   if (pedido.formaReceber) {
     linhas.push(`<div class="line ${getPrintHighlightClass(pedido, "formaReceber")} ${getPrintHighlightClass(pedido, "bancoOuObsPagamento")} ${getPrintHighlightClass(pedido, "parcelamento")}"><strong>Pagamento:</strong> ${escapeHtml(paymentText(pedido))}</div>`);
   }
@@ -661,13 +678,16 @@ function renderPrintFinanceiro(pedido) {
 }
 
 function gerarHTMLRotaImpressao(pedidos, data) {
-  const cards = pedidos.map(p => {
+  const pedidosEntrega = pedidos.filter(p => !p.retiradaLojaAtiva);
+  const pedidosRetirada = pedidos.filter(p => p.retiradaLojaAtiva);
+
+  function renderCard(p) {
     const itens = (p.itens || []).map(item => `
-      <div class="item-row ${item.destacarNaImpressao ? "hl" : ""}">
-        <strong>${escapeHtml(`${item.quantidade} ${pluralizeItem(item.nome, item.quantidade)}`)}</strong>
-        ${item.descricao ? `<span>${escapeHtml(item.descricao)}</span>` : ""}
-      </div>
+      <div class="item-row"><span class="${item.destacarNaImpressao ? "hl-text" : ""}"><strong>${escapeHtml(`${item.quantidade} ${pluralizeItem(item.nome, item.quantidade)}`)}</strong>${item.descricao ? ` ${escapeHtml(item.descricao)}` : ""}</span></div>
     `).join("");
+
+    const enderecoPartes = [p.endereco?.trim(), p.bairro ? `Bairro: ${p.bairro}` : "", p.cidade ? `Cidade: ${p.cidade}` : ""].filter(Boolean).join("   ");
+
     return `
       <article class="print-card">
         <div class="print-head">
@@ -675,14 +695,13 @@ function gerarHTMLRotaImpressao(pedidos, data) {
           <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
         </div>
         <div class="meta-grid">
-          <div class="line ${getPrintHighlightClass(p, "cidade")}"><strong>Cidade:</strong> ${escapeHtml(p.cidade || "-")}</div>
-          <div class="line ${getPrintHighlightClass(p, "loja")}"><strong>Loja:</strong> ${escapeHtml(p.loja || "-")}</div>
-          <div class="line ${getPrintHighlightClass(p, "status")}"><strong>Status:</strong> ${escapeHtml(p.status || "-")}</div>
-          <div class="line ${getPrintHighlightClass(p, "dataPedido")}"><strong>Data:</strong> ${escapeHtml(formatDateBR(p.dataPedido || ""))}</div>
+          <div class="line ${getPrintHighlightClass(p, "loja")}"><strong>Loja:</strong> <span>${escapeHtml(p.loja || "-")}</span></div>
+          <div class="line ${getPrintHighlightClass(p, "dataPedido")}"><strong>Data:</strong> <span>${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
+          <div class="line ${getPrintHighlightClass(p, "status")}"><strong>Status:</strong> <span>${escapeHtml(p.status || "-")}</span></div>
+          ${p.retiradaLojaAtiva ? `<div class="line"><strong>Retirar em:</strong> <span>${escapeHtml(p.retiradaLojaLocal || "-")}</span></div>` : ""}
         </div>
-        <div class="line ${getPrintHighlightClass(p, "endereco")}"><strong>Endereço:</strong> ${escapeHtml(p.endereco || "-")}</div>
-        ${p.bairro ? `<div class="line ${getPrintHighlightClass(p, "bairro")}"><strong>Bairro:</strong> ${escapeHtml(p.bairro)}</div>` : ""}
-        ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> ${escapeHtml(p.contatos.join(" | "))}</div>` : ""}
+        <div class="line endereco-line ${getPrintHighlightClass(p, "endereco")} ${getPrintHighlightClass(p, "bairro")} ${getPrintHighlightClass(p, "cidade")}"><strong>Endereço:</strong> <span>${escapeHtml(enderecoPartes || "-")}</span></div>
+        ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> <span>${escapeHtml(p.contatos.join(" | "))}</span></div>` : ""}
         <div class="section-title">Itens</div>
         <div class="items-block">${itens}</div>
         <div class="section-title">Financeiro</div>
@@ -690,7 +709,10 @@ function gerarHTMLRotaImpressao(pedidos, data) {
         ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs"><span class="${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</span></div>` : ""}
       </article>
     `;
-  }).join("");
+  }
+
+  const cardsEntrega = pedidosEntrega.map(renderCard).join("");
+  const cardsRetirada = pedidosRetirada.map(renderCard).join("");
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -699,30 +721,30 @@ function gerarHTMLRotaImpressao(pedidos, data) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Rota ${escapeHtml(formatDateBR(data))}</title>
 <style>
-  @page { size: A4 portrait; margin: 15mm; }
-  :root { --paper-w: 180mm; --paper-h: 267mm; --lime: #eaff97; }
+  @page { size: A4 portrait; margin: 0; }
+  :root { --paper-w: 195mm; --paper-h: 282mm; --lime: #eef8a8; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { width: var(--paper-w); height: var(--paper-h); overflow: hidden; margin: 0 auto; }
-  .scale-wrap { width: var(--paper-w); transform-origin: top left; }
-  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; margin-bottom:8px; }
+  .page { width: var(--paper-w); height: var(--paper-h); overflow: hidden; margin: 7.5mm auto; }
+  .scale-wrap { width: 180mm; transform-origin: top left; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:10px; }
   .header h1 { margin:0; font-size:16px; }
   .header .sub { font-size:10px; color:#444; }
-  .cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-content:start; }
-  .print-card { border:1px solid #333; border-radius:8px; padding:8px; break-inside:avoid; background:#fff; }
-  .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:5px; align-items:flex-start; }
+  .section-heading { font-size:11px; font-weight:700; text-transform:uppercase; margin:0 0 6px; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-content:start; }
+  .print-card { border:1px solid #333; border-radius:8px; padding:8px 9px; break-inside:avoid; background:#fff; }
+  .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; align-items:flex-start; }
   .client { font-size:12px; font-weight:700; line-height:1.15; }
-  .pedido-num { font-size:10px; text-align:right; }
-  .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 6px; margin-bottom:4px; }
-  .line, .obs, .item-row { font-size:9.3px; line-height:1.2; padding:2px 0; border-radius:4px; }
-  .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:5px 0 2px; color:#333; }
+  .pedido-num { font-size:10px; text-align:right; white-space:nowrap; }
+  .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin-bottom:4px; }
+  .line, .obs, .item-row { font-size:9.4px; line-height:1.24; padding:1px 0; }
+  .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:6px 0 2px; color:#333; }
   .items-block, .finance-block { display:flex; flex-direction:column; gap:2px; }
-  .item-row strong { display:block; font-size:9.3px; }
-  .item-row span { display:block; }
   .obs { color:#9b1c1c; font-weight:600; }
-  .hl-text { background: var(--lime); display:inline; padding:0 3px; border-radius:3px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
-  @media print { html, body { width: 210mm; height: 297mm; } .page { margin:0; } }
+  .hl-text { background: var(--lime); display:inline; padding:1px 3px; border-radius:2px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+  .retirada-group { margin-top: 10px; }
+  @media print { html, body { width: 210mm; height: 297mm; } }
 </style>
 </head>
 <body>
@@ -733,23 +755,29 @@ function gerarHTMLRotaImpressao(pedidos, data) {
           <h1>DUNORTE • ROTA DE ENTREGA</h1>
           <div class="sub">Data da rota: ${escapeHtml(formatDateBR(data))}</div>
         </div>
-        <div class="sub">Pedidos em rota: ${pedidos.length}</div>
+        <div class="sub">Pedidos na folha: ${pedidos.length}</div>
       </div>
-      <div class="cards" id="cards">${cards}</div>
+      <div class="section-heading">ENTREGAS EM ROTA</div>
+      <div class="cards">${cardsEntrega}</div>
+      ${cardsRetirada ? `<div class="retirada-group"><div class="section-heading">LEVAR PARA LOJA • CLIENTE IRÁ RETIRAR</div><div class="cards">${cardsRetirada}</div></div>` : ""}
     </div>
   </div>
 <script>
 (function(){
-  const pageH = 267 * 3.7795275591;
+  const mm = 3.7795275591;
+  const pageW = 195 * mm;
+  const pageH = 282 * mm;
   const wrap = document.getElementById('scaleWrap');
   const fit = () => {
     wrap.style.transform = 'scale(1)';
+    wrap.style.height = 'auto';
+    const w = wrap.scrollWidth;
     const h = wrap.scrollHeight;
-    const scale = Math.min(1, pageH / Math.max(h, 1));
+    const scale = Math.min(pageW / Math.max(w, 1), pageH / Math.max(h, 1));
     wrap.style.transform = 'scale(' + scale + ')';
     wrap.style.height = (h * scale) + 'px';
   };
-  window.addEventListener('load', () => { fit(); setTimeout(() => { fit(); window.print(); }, 60); });
+  window.addEventListener('load', () => { fit(); setTimeout(() => { fit(); window.print(); }, 80); });
 })();
 <\/script>
 </body>

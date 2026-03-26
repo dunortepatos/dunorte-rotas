@@ -99,14 +99,10 @@
                 </div>
                 <select id="status" required>
                   <option value="AGUARDANDO">AGUARDANDO</option>
-                  <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
-                  <option value="ENTREGUE">ENTREGUE</option>
-                <option value="ENTREGA FUTURA">ENTREGA FUTURA</option>
-                <option value="RETIRADA">RETIRADA</option>
-                <option value="ENTREGA FUTURA">ENTREGA FUTURA</option>
-                <option value="RETIRADA">RETIRADA</option>
                   <option value="ENTREGA FUTURA">ENTREGA FUTURA</option>
                   <option value="RETIRADA">RETIRADA</option>
+                  <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
+                  <option value="ENTREGUE">ENTREGUE</option>
                 </select>
               </div>
             </div>
@@ -166,6 +162,21 @@
                 </label>
               </div>
               <input id="endereco" type="text" placeholder="Rua, número, complemento" required />
+            </div>
+
+            <div class="field retirada-loja-box">
+              <label class="check-inline">
+                <input id="retiradaLojaAtiva" type="checkbox" />
+                <span>Cliente irá fazer retirada do pedido em</span>
+              </label>
+              <div class="retirada-loja-select-wrap hidden" id="retiradaLojaSelectWrap">
+                <select id="retiradaLojaLocal">
+                  <option value="">Selecione</option>
+                  <option value="PATOS">PATOS</option>
+                  <option value="LAGOA">LAGOA</option>
+                  <option value="PINDURA">PINDURA</option>
+                </select>
+              </div>
             </div>
 
             <div class="field">

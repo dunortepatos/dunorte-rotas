@@ -405,3 +405,9 @@ small{color:var(--muted)}
 .status-select-card h3{margin:0 0 12px;font-size:20px}
 .status-select-input{margin-bottom:14px}
 .status-select-actions{display:flex;gap:10px;justify-content:flex-end}
+
+
+.check-inline{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:8px;}
+.check-inline input{width:auto;accent-color:var(--brown);}
+.retirada-loja-box{border:1px solid var(--line);border-radius:16px;padding:12px;background:#fcfbf9;}
+.retirada-loja-select-wrap{margin-top:8px;max-width:220px;}
