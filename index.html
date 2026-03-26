@@ -99,8 +99,6 @@
                 </div>
                 <select id="status" required>
                   <option value="AGUARDANDO">AGUARDANDO</option>
-                  <option value="ENTREGA FUTURA">ENTREGA FUTURA</option>
-                  <option value="RETIRADA">RETIRADA</option>
                   <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
                   <option value="ENTREGUE">ENTREGUE</option>
                 </select>
@@ -165,27 +163,6 @@
             </div>
 
             <div class="field">
-              <label for="mapsShareLink">Link compartilhado do Maps</label>
-              <input id="mapsShareLink" type="url" placeholder="Cole aqui o link do botão Partilhar do Google Maps (maps.app.goo.gl/...)" />
-              <small>Opcional. Se preencher, esse link será usado na rota para WhatsApp. Se deixar vazio, o sistema usa o link normal por endereço.</small>
-            </div>
-
-            <div class="field retirada-loja-box">
-              <label class="check-inline">
-                <input id="retiradaLojaAtiva" type="checkbox" />
-                <span>Cliente irá fazer retirada do pedido em</span>
-              </label>
-              <div class="retirada-loja-select-wrap hidden" id="retiradaLojaSelectWrap">
-                <select id="retiradaLojaLocal">
-                  <option value="">Selecione</option>
-                  <option value="PATOS">PATOS</option>
-                  <option value="LAGOA">LAGOA</option>
-                  <option value="PINDURA">PINDURA</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="field">
               <div class="section-line">
                 <label>Contatos</label>
                 <button type="button" id="btnAddContato" class="link-action">+ Adicionar contato</button>
@@ -199,6 +176,13 @@
                 <button type="button" id="btnAddItem" class="link-action">+ Adicionar item</button>
               </div>
               <div id="listaItens" class="stack"></div>
+            </div>
+
+            <div class="field">
+              <label>Fotos do pedido</label>
+              <input id="fotosPedido" type="file" accept="image/*" multiple />
+              <small>As imagens ficam salvas no navegador. Use com moderação para não pesar.</small>
+              <div id="previewFotos" class="photo-grid"></div>
             </div>
 
             <div class="grid-3">
@@ -316,8 +300,6 @@
               <select id="filtroStatus">
                 <option value="">Todos os status</option>
                 <option value="AGUARDANDO">AGUARDANDO</option>
-                <option value="ENTREGA FUTURA">ENTREGA FUTURA</option>
-                <option value="RETIRADA">RETIRADA</option>
                 <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
                 <option value="ENTREGUE">ENTREGUE</option>
               </select>
@@ -397,8 +379,6 @@
                 <option value="AGUARDANDO">AGUARDANDO</option>
                 <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
                 <option value="ENTREGUE">ENTREGUE</option>
-                <option value="ENTREGA FUTURA">ENTREGA FUTURA</option>
-                <option value="RETIRADA">RETIRADA</option>
               </select>
             </div>
             <div class="field">
@@ -476,13 +456,6 @@
           <input type="text" class="item-nome" list="itensSugestoes" placeholder="Ex.: Mesa" />
         </div>
         <button type="button" class="icon-btn remove-btn">×</button>
-      </div>
-      <div class="field item-highlight-field">
-        <label class="highlight-toggle item-highlight-toggle" title="Destacar item na impressão da rota">
-          <input type="checkbox" class="item-destaque" />
-          <span class="highlight-icon">🖊</span>
-          <span>Destacar este item na impressão</span>
-        </label>
       </div>
       <div class="field">
         <label>Descrição</label>
