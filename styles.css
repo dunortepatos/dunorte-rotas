@@ -10,6 +10,7 @@
   --green:#4d6f58;
   --red:#a54d4d;
   --yellow:#c89a58;
+  --highlight:#f5f500;
   --shadow:0 18px 45px rgba(74,47,29,.10);
   --radius:22px;
 }
@@ -195,7 +196,32 @@ textarea{resize:vertical;min-height:90px}
 }
 small{color:var(--muted)}
 
-/* cards resumo */
+/* ── Destaque de campo (marca-texto) ── */
+.field-highlight-row{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px;
+}
+.field-highlight-row label{
+  margin-bottom:0!important;
+}
+.highlight-toggle{
+  display:flex;align-items:center;gap:4px;cursor:pointer;
+  font-size:13px;color:var(--muted);user-select:none;
+}
+.highlight-toggle input{display:none}
+.highlight-icon{
+  font-size:16px;opacity:.45;transition:.15s;
+}
+.highlight-toggle:has(input:checked) .highlight-icon{
+  opacity:1;filter:drop-shadow(0 0 3px #e5e000);
+}
+/* campo com destaque — visual na tela */
+.field-highlighted{
+  background:#ffffa0 !important;
+  border-color:#d4c800 !important;
+  box-shadow:0 0 0 3px rgba(230,214,0,.25)!important;
+}
+
+/* ── Cards de resumo ── */
 .orders-list.cards-view{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
@@ -212,7 +238,8 @@ small{color:var(--muted)}
   background:linear-gradient(180deg,#eef6ff,#e5f1ff);
 }
 .order-card.resumo-card.status-entregue{
-  background:linear-gradient(180deg,#eef9f0,#e4f4e8);
+  background:linear-gradient(180deg,#eef9f0,#d6f0db);
+  border-color:#b2d9bb;
 }
 .resumo-topo{
   display:flex;
@@ -260,7 +287,7 @@ small{color:var(--muted)}
   margin-top:10px;
 }
 
-/* modal */
+/* ── Modal ── */
 .modal{
   position:fixed;
   inset:0;
@@ -280,6 +307,8 @@ small{color:var(--muted)}
   max-height:90vh;
   overflow:auto;
   z-index:1;
+  border-radius:24px;
+  padding:18px;
 }
 .modal-header{
   display:flex;
@@ -289,6 +318,42 @@ small{color:var(--muted)}
   margin-bottom:14px;
 }
 
+/* ── Modal Relatório ── */
+.relatorio-modal-card{
+  position:relative;
+  width:min(100%,700px);
+  max-height:92vh;
+  overflow:auto;
+  z-index:1;
+  border-radius:24px;
+  padding:22px;
+}
+.relatorio-body{display:flex;flex-direction:column;gap:18px}
+.rel-section{background:#fcfbf9;border:1px solid var(--line);border-radius:18px;padding:16px}
+.rel-section h4{margin:0 0 14px;font-size:15px;color:var(--brown)}
+.campos-check-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:8px;
+}
+.check-option{
+  display:flex;align-items:center;gap:8px;
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:8px 12px;font-size:14px;cursor:pointer;
+}
+.check-option:has(input:checked){
+  background:#fffaf4;border-color:#c59a68;
+}
+.check-option input{accent-color:var(--brown)}
+.rel-preview-info{
+  background:#f7f1e8;border:1px solid var(--line);border-radius:14px;
+  padding:12px;font-size:13px;min-height:40px;
+}
+.rel-preview-list{
+  margin-top:8px;color:var(--muted);font-size:12px;line-height:1.8;
+}
+
+/* ── Impressão ── */
 @media (max-width:1180px){
   .main-layout{grid-template-columns:1fr}
 }
@@ -315,6 +380,19 @@ small{color:var(--muted)}
     padding:10px!important;
     border-radius:14px!important;
     background:#fff!important;
+  }
+  /* campos destacados saem com marca-texto amarelo na impressão */
+  .field-highlighted{
+    background:#f5f500 !important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  /* observações em vermelho na impressão */
+  #observacoes{
+    color:#c0392b!important;
+    font-weight:600!important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
   }
   .resumo-topo .badge-wrap,.click-hint,.resumo-mais{display:none!important}
   .resumo-topo h4{font-size:16px!important;line-height:1.15!important;margin:0!important}

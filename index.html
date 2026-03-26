@@ -18,7 +18,6 @@
             <p>SISTEMA DE PEDIDOS E ROTAS PRO</p>
           </div>
         </div>
-
         <form id="loginForm" class="login-form">
           <div class="field">
             <label for="loginUser">Usuário</label>
@@ -41,9 +40,9 @@
           <h2>Pedidos e Rotas</h2>
           <p>Cadastro, edição, fotos, rota para WhatsApp e gerenciamento completo.</p>
         </div>
-
         <div class="topbar-actions">
           <button id="btnNovoPedido" class="btn btn-light">Novo pedido</button>
+          <button id="btnRelatorio" class="btn btn-light">📊 Relatório PDF</button>
           <button id="btnExportar" class="btn btn-light">Exportar JSON</button>
           <label class="btn btn-light file-btn">
             Importar JSON
@@ -63,9 +62,27 @@
           <form id="pedidoForm">
             <input type="hidden" id="pedidoId" />
 
+            <!-- DATA DO PEDIDO -->
+            <div class="field">
+              <div class="field-highlight-row">
+                <label for="dataPedido">Data do pedido</label>
+                <label class="highlight-toggle" title="Destacar na impressão">
+                  <input type="checkbox" class="highlight-cb" data-target="dataPedido" />
+                  <span class="highlight-icon">🖊</span>
+                </label>
+              </div>
+              <input id="dataPedido" type="date" required />
+            </div>
+
             <div class="grid-2">
               <div class="field">
-                <label for="loja">Loja</label>
+                <div class="field-highlight-row">
+                  <label for="loja">Loja</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="loja" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <select id="loja" required>
                   <option value="">Selecione</option>
                   <option value="Patos de Minas">Patos de Minas</option>
@@ -73,7 +90,13 @@
                 </select>
               </div>
               <div class="field">
-                <label for="status">Status</label>
+                <div class="field-highlight-row">
+                  <label for="status">Status</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="status" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <select id="status" required>
                   <option value="AGUARDANDO">AGUARDANDO</option>
                   <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
@@ -84,28 +107,58 @@
 
             <div class="grid-2">
               <div class="field">
-                <label for="numeroPedido">Número do pedido</label>
+                <div class="field-highlight-row">
+                  <label for="numeroPedido">Número do pedido</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="numeroPedido" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="numeroPedido" type="text" placeholder="Ex.: 2580" required />
               </div>
               <div class="field">
-                <label for="nomeCliente">Nome do cliente</label>
+                <div class="field-highlight-row">
+                  <label for="nomeCliente">Nome do cliente</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="nomeCliente" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="nomeCliente" type="text" placeholder="Ex.: João da Silva" required />
               </div>
             </div>
 
             <div class="grid-2">
               <div class="field">
-                <label for="cidade">Cidade</label>
+                <div class="field-highlight-row">
+                  <label for="cidade">Cidade</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="cidade" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="cidade" type="text" required />
               </div>
               <div class="field">
-                <label for="bairro">Bairro</label>
+                <div class="field-highlight-row">
+                  <label for="bairro">Bairro</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="bairro" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="bairro" type="text" />
               </div>
             </div>
 
             <div class="field">
-              <label for="endereco">Endereço</label>
+              <div class="field-highlight-row">
+                <label for="endereco">Endereço</label>
+                <label class="highlight-toggle" title="Destacar na impressão">
+                  <input type="checkbox" class="highlight-cb" data-target="endereco" />
+                  <span class="highlight-icon">🖊</span>
+                </label>
+              </div>
               <input id="endereco" type="text" placeholder="Rua, número, complemento" required />
             </div>
 
@@ -134,22 +187,46 @@
 
             <div class="grid-3">
               <div class="field">
-                <label for="valorTotal">Valor total</label>
+                <div class="field-highlight-row">
+                  <label for="valorTotal">Valor total</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="valorTotal" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="valorTotal" type="text" inputmode="decimal" placeholder="0,00" />
               </div>
               <div class="field">
-                <label for="valorEntrada">Entrada</label>
+                <div class="field-highlight-row">
+                  <label for="valorEntrada">Entrada</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="valorEntrada" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="valorEntrada" type="text" inputmode="decimal" placeholder="0,00" />
               </div>
               <div class="field">
-                <label for="valorReceber">A receber</label>
+                <div class="field-highlight-row">
+                  <label for="valorReceber">A receber</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="valorReceber" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="valorReceber" type="text" readonly />
               </div>
             </div>
 
             <div class="grid-2">
               <div class="field hidden" id="blocoFormaReceber">
-                <label for="formaReceber">Forma de pagamento a receber</label>
+                <div class="field-highlight-row">
+                  <label for="formaReceber">Forma de pagamento a receber</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="formaReceber" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <select id="formaReceber">
                   <option value="">Selecione</option>
                   <option value="DINHEIRO">DINHEIRO</option>
@@ -160,15 +237,26 @@
                   <option value="CREDIARIO">CREDIÁRIO</option>
                 </select>
               </div>
-
               <div class="field hidden" id="blocoBancoOuDetalhe">
-                <label for="bancoOuObsPagamento">Banco / detalhe</label>
+                <div class="field-highlight-row">
+                  <label for="bancoOuObsPagamento">Banco / detalhe</label>
+                  <label class="highlight-toggle" title="Destacar na impressão">
+                    <input type="checkbox" class="highlight-cb" data-target="bancoOuObsPagamento" />
+                    <span class="highlight-icon">🖊</span>
+                  </label>
+                </div>
                 <input id="bancoOuObsPagamento" type="text" placeholder="Ex.: Sicredi" />
               </div>
             </div>
 
             <div class="field hidden" id="blocoParcelamento">
-              <label for="parcelamento">Parcelamento</label>
+              <div class="field-highlight-row">
+                <label for="parcelamento">Parcelamento</label>
+                <label class="highlight-toggle" title="Destacar na impressão">
+                  <input type="checkbox" class="highlight-cb" data-target="parcelamento" />
+                  <span class="highlight-icon">🖊</span>
+                </label>
+              </div>
               <select id="parcelamento">
                 <option value="">Selecione</option>
                 <option value="À vista">À vista</option>
@@ -187,7 +275,13 @@
             </div>
 
             <div class="field">
-              <label for="observacoes">Observações</label>
+              <div class="field-highlight-row">
+                <label for="observacoes">Observações</label>
+                <label class="highlight-toggle" title="Destacar na impressão">
+                  <input type="checkbox" class="highlight-cb" data-target="observacoes" />
+                  <span class="highlight-icon">🖊</span>
+                </label>
+              </div>
               <textarea id="observacoes" rows="4"></textarea>
             </div>
 
@@ -229,6 +323,7 @@
       </main>
     </section>
 
+    <!-- Modal detalhes pedido -->
     <div id="pedidoModal" class="modal hidden">
       <div class="modal-backdrop" id="pedidoModalBackdrop"></div>
       <div class="modal-card glass pedido-modal-card">
@@ -239,6 +334,107 @@
         <div id="pedidoModalConteudo"></div>
       </div>
     </div>
+
+    <!-- Modal Relatório -->
+    <div id="relatorioModal" class="modal hidden">
+      <div class="modal-backdrop" id="relatorioModalBackdrop"></div>
+      <div class="modal-card glass relatorio-modal-card">
+        <div class="modal-header">
+          <h3>📊 Gerar Relatório PDF</h3>
+          <button id="fecharRelatorioModal" class="btn btn-light" type="button">Fechar</button>
+        </div>
+        <div class="relatorio-body">
+          <div class="rel-section">
+            <h4>Filtros</h4>
+            <div class="grid-2">
+              <div class="field">
+                <label for="relDataInicio">Data inicial</label>
+                <input id="relDataInicio" type="date" />
+              </div>
+              <div class="field">
+                <label for="relDataFim">Data final</label>
+                <input id="relDataFim" type="date" />
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="relValorMin">Valor total mínimo (R$)</label>
+                <input id="relValorMin" type="text" inputmode="decimal" placeholder="0,00" />
+              </div>
+              <div class="field">
+                <label for="relValorMax">Valor total máximo (R$)</label>
+                <input id="relValorMax" type="text" inputmode="decimal" placeholder="ilimitado" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="relCidade">Cidade</label>
+              <select id="relCidade">
+                <option value="">Todas as cidades</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="relStatusFiltro">Status</label>
+              <select id="relStatusFiltro">
+                <option value="">Todos</option>
+                <option value="AGUARDANDO">AGUARDANDO</option>
+                <option value="EM ROTA DE ENTREGA">EM ROTA DE ENTREGA</option>
+                <option value="ENTREGUE">ENTREGUE</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="relLoja">Loja</label>
+              <select id="relLoja">
+                <option value="">Todas as lojas</option>
+                <option value="Patos de Minas">Patos de Minas</option>
+                <option value="Campina Verde">Campina Verde</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="rel-section">
+            <h4>Ordenação</h4>
+            <div class="field">
+              <select id="relOrdem">
+                <option value="alfabetica">Ordem alfabética (cliente)</option>
+                <option value="numeroPedido">Número do pedido</option>
+                <option value="data">Data do pedido</option>
+                <option value="valorTotal">Valor total</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="rel-section">
+            <h4>Campos a exibir no relatório</h4>
+            <div class="campos-check-grid">
+              <label class="check-option"><input type="checkbox" name="relCampo" value="dataPedido" checked /> Data do pedido</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="numeroPedido" checked /> Número do pedido</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="nomeCliente" checked /> Nome do cliente</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="loja" checked /> Loja</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="status" checked /> Status</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="cidade" checked /> Cidade</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="bairro" /> Bairro</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="endereco" checked /> Endereço</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="contatos" /> Contatos</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="itens" checked /> Itens do pedido</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="valorTotal" checked /> Valor total</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="valorEntrada" /> Entrada</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="valorReceber" checked /> A receber</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="formaReceber" /> Forma de pagamento</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="parcelamento" /> Parcelamento</label>
+              <label class="check-option"><input type="checkbox" name="relCampo" value="observacoes" checked /> Observações</label>
+            </div>
+          </div>
+
+          <div id="relPreviewInfo" class="rel-preview-info"></div>
+
+          <div class="form-actions">
+            <button id="btnGerarRelatorio" class="btn btn-primary">Gerar PDF</button>
+            <button id="btnPreviewRelatorio" class="btn btn-light">Pré-visualizar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <template id="tplContato">
