@@ -242,6 +242,7 @@ function addItem(item = null) {
     tpl.querySelector(".item-qtd").value  = item.quantidade || 1;
     tpl.querySelector(".item-nome").value = item.nome || "";
     tpl.querySelector(".item-desc").value = item.descricao || "";
+    tpl.querySelector(".item-destaque").checked = !!item.destacarNaImpressao;
   }
   tpl.querySelector(".remove-btn").addEventListener("click", () => tpl.remove());
   refs.listaItens.appendChild(tpl);
@@ -316,7 +317,8 @@ async function collectForm() {
   const itens    = [...refs.listaItens.querySelectorAll(".item-card")].map(card => ({
     quantidade: Math.max(1, Number(card.querySelector(".item-qtd").value) || 1),
     nome:       card.querySelector(".item-nome").value.trim(),
-    descricao:  card.querySelector(".item-desc").value.trim()
+    descricao:  card.querySelector(".item-desc").value.trim(),
+    destacarNaImpressao: !!card.querySelector(".item-destaque")?.checked
   })).filter(item => item.nome);
   if (!itens.length) { alert("Adicione pelo menos um item."); return null; }
   const todos    = await getPedidos();
@@ -411,7 +413,9 @@ function pluralizeItem(nome, qtd) {
   if (/[aeiou]$/i.test(n)) return n + "s";
   return n + "s";
 }
-function mapsLink(p)    { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.endereco}, ${p.cidade}`)}`; }
+function mapsLink(p)    { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${(p.endereco||"").trim()}, ${(p.cidade||"").trim()}`)}`; }
+const TREE_EMOJI = String.fromCodePoint(0x1F333);
+const PIN_EMOJI  = String.fromCodePoint(0x1F4CD);
 function paymentText(p) { const arr=[p.formaReceber]; if(p.parcelamento) arr.push(p.parcelamento); if(p.bancoOuObsPagamento) arr.push(p.bancoOuObsPagamento); return arr.filter(Boolean).join(" • "); }
 function statusClass(status) { return status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"-"); }
 function openWhatsApp(text) { window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank"); }
@@ -430,15 +434,19 @@ async function filteredPedidos() {
 
 // ─── Stats ────────────────────────────────────────────────────────────
 function renderStats(todosPedidos) {
-  const total      = todosPedidos.length;
-  const aguardando = todosPedidos.filter(p => p.status === "AGUARDANDO").length;
-  const emRota     = todosPedidos.filter(p => p.status === "EM ROTA DE ENTREGA").length;
-  const entregue   = todosPedidos.filter(p => p.status === "ENTREGUE").length;
+  const total         = todosPedidos.length;
+  const aguardando    = todosPedidos.filter(p => p.status === "AGUARDANDO").length;
+  const emRota        = todosPedidos.filter(p => p.status === "EM ROTA DE ENTREGA").length;
+  const entregue      = todosPedidos.filter(p => p.status === "ENTREGUE").length;
+  const entregaFutura = todosPedidos.filter(p => p.status === "ENTREGA FUTURA").length;
+  const retirada      = todosPedidos.filter(p => p.status === "RETIRADA").length;
   const stats = [
-    {label:"Total",    value:total,      filter:""},
+    {label:"Total", value:total, filter:""},
     {label:"Aguardando", value:aguardando, filter:"AGUARDANDO"},
-    {label:"Em rota",  value:emRota,     filter:"EM ROTA DE ENTREGA"},
-    {label:"Entregues",value:entregue,   filter:"ENTREGUE"}
+    {label:"Em rota", value:emRota, filter:"EM ROTA DE ENTREGA"},
+    {label:"Entregues", value:entregue, filter:"ENTREGUE"},
+    {label:"Entrega futura", value:entregaFutura, filter:"ENTREGA FUTURA"},
+    {label:"Retirada", value:retirada, filter:"RETIRADA"}
   ];
   refs.statsBar.innerHTML = stats.map(stat => `
     <button type="button" class="stat-card filtro-card ${refs.filtroStatus.value===stat.filter ? "ativo" : ""}" data-filter="${stat.filter}">
@@ -568,9 +576,9 @@ refs.fecharPedidoModal.addEventListener("click", fecharPedidoModal);
 
 // ─── Ações do card ────────────────────────────────────────────────────
 function nextStatus(atual) {
-  if (atual === "AGUARDANDO") return "EM ROTA DE ENTREGA";
-  if (atual === "EM ROTA DE ENTREGA") return "ENTREGUE";
-  return "AGUARDANDO";
+  const fluxo = ["AGUARDANDO", "EM ROTA DE ENTREGA", "ENTREGUE", "ENTREGA FUTURA", "RETIRADA"];
+  const idx = fluxo.indexOf(atual);
+  return fluxo[(idx + 1) % fluxo.length];
 }
 async function handleCardAction(id, action) {
   const todos = await getPedidos();
@@ -608,20 +616,151 @@ function orderWhatsAppText(p) {
 }
 
 // ─── Rota ─────────────────────────────────────────────────────────────
-async function routePedidos() { return (await filteredPedidos()).filter(p => p.status === "EM ROTA DE ENTREGA"); }
-function routeItemSummary(items) { return "🌳 " + items.map(i=>`${i.quantidade} ${pluralizeItem(i.nome,i.quantidade)}`).join(" + "); }
+async function routePedidos() {
+  const todos = await getPedidos();
+  return todos.filter(p => p.status === "EM ROTA DE ENTREGA").sort((a,b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+}
+function routeItemSummary(items) {
+  return `${TREE_EMOJI} ` + items.map(i => `${i.quantidade} ${pluralizeItem(i.nome, i.quantidade)}`).join(" + ");
+}
 
 refs.btnRotaWhatsapp.addEventListener("click", async () => {
   const pedidos = await routePedidos();
   if (!pedidos.length) { alert('Não há pedidos com status "EM ROTA DE ENTREGA".'); return; }
   const data = refs.dataRota.value || todayISO();
   const lines = [`*ROTA (${formatDateBR(data)})*`, ""];
-  pedidos.forEach(p => { lines.push(`*${p.nomeCliente}*`); lines.push(routeItemSummary(p.itens)); lines.push(`📍 ${mapsLink(p)}`); lines.push(""); });
+  pedidos.forEach(p => {
+    lines.push(`*${p.nomeCliente}*`);
+    lines.push(routeItemSummary(p.itens));
+    lines.push(`${PIN_EMOJI} ${mapsLink(p)}`);
+    lines.push("");
+  });
   openWhatsApp(lines.join("\n").trim());
 });
+
+function getPrintHighlightClass(pedido, field) {
+  return pedido.camposDestacados?.[field] ? "hl" : "";
+}
+
+function renderPrintFinanceiro(pedido) {
+  const linhas = [
+    `<div class="line ${getPrintHighlightClass(pedido, "valorTotal")}"><strong>Total:</strong> ${escapeHtml(formatMoney(pedido.valorTotal))}</div>`,
+    `<div class="line ${getPrintHighlightClass(pedido, "valorEntrada")}"><strong>Entrada:</strong> ${escapeHtml(formatMoney(pedido.valorEntrada))}</div>`
+  ];
+  if ((pedido.valorReceber || 0) > 0) {
+    linhas.push(`<div class="line ${getPrintHighlightClass(pedido, "valorReceber")}"><strong>A receber:</strong> ${escapeHtml(formatMoney(pedido.valorReceber))}</div>`);
+  }
+  if (pedido.formaReceber) {
+    linhas.push(`<div class="line ${getPrintHighlightClass(pedido, "formaReceber")} ${getPrintHighlightClass(pedido, "bancoOuObsPagamento")} ${getPrintHighlightClass(pedido, "parcelamento")}"><strong>Pagamento:</strong> ${escapeHtml(paymentText(pedido))}</div>`);
+  }
+  return linhas.join("");
+}
+
+function gerarHTMLRotaImpressao(pedidos, data) {
+  const cards = pedidos.map(p => {
+    const itens = (p.itens || []).map(item => `
+      <div class="item-row ${item.destacarNaImpressao ? "hl" : ""}">
+        <strong>${escapeHtml(`${item.quantidade} ${pluralizeItem(item.nome, item.quantidade)}`)}</strong>
+        ${item.descricao ? `<span>${escapeHtml(item.descricao)}</span>` : ""}
+      </div>
+    `).join("");
+    return `
+      <article class="print-card">
+        <div class="print-head">
+          <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")}</div>
+          <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
+        </div>
+        <div class="meta-grid">
+          <div class="line ${getPrintHighlightClass(p, "cidade")}"><strong>Cidade:</strong> ${escapeHtml(p.cidade || "-")}</div>
+          <div class="line ${getPrintHighlightClass(p, "loja")}"><strong>Loja:</strong> ${escapeHtml(p.loja || "-")}</div>
+          <div class="line ${getPrintHighlightClass(p, "status")}"><strong>Status:</strong> ${escapeHtml(p.status || "-")}</div>
+          <div class="line ${getPrintHighlightClass(p, "dataPedido")}"><strong>Data:</strong> ${escapeHtml(formatDateBR(p.dataPedido || ""))}</div>
+        </div>
+        <div class="line ${getPrintHighlightClass(p, "endereco")}"><strong>Endereço:</strong> ${escapeHtml(p.endereco || "-")}</div>
+        ${p.bairro ? `<div class="line ${getPrintHighlightClass(p, "bairro")}"><strong>Bairro:</strong> ${escapeHtml(p.bairro)}</div>` : ""}
+        ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> ${escapeHtml(p.contatos.join(" | "))}</div>` : ""}
+        <div class="section-title">Itens</div>
+        <div class="items-block">${itens}</div>
+        <div class="section-title">Financeiro</div>
+        <div class="finance-block">${renderPrintFinanceiro(p)}</div>
+        ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs ${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</div>` : ""}
+      </article>
+    `;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rota ${escapeHtml(formatDateBR(data))}</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  :root { --paper-w: 180mm; --paper-h: 267mm; --lime: #d7ff37; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: var(--paper-w); height: var(--paper-h); overflow: hidden; margin: 0 auto; }
+  .scale-wrap { width: var(--paper-w); transform-origin: top left; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; margin-bottom:8px; }
+  .header h1 { margin:0; font-size:16px; }
+  .header .sub { font-size:10px; color:#444; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:6px; align-content:start; }
+  .print-card { border:1px solid #333; border-radius:8px; padding:7px; break-inside:avoid; background:#fff; }
+  .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:5px; align-items:flex-start; }
+  .client { font-size:12px; font-weight:700; line-height:1.15; }
+  .pedido-num { font-size:10px; text-align:right; }
+  .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 6px; margin-bottom:4px; }
+  .line, .obs, .item-row { font-size:9.3px; line-height:1.18; padding:2px 3px; border-radius:4px; }
+  .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:5px 0 2px; color:#333; }
+  .items-block, .finance-block { display:flex; flex-direction:column; gap:2px; }
+  .item-row strong { display:block; font-size:9.3px; }
+  .item-row span { display:block; }
+  .obs { color:#9b1c1c; font-weight:600; }
+  .hl { background: var(--lime); }
+  @media print { html, body { width: 210mm; height: 297mm; } .page { margin:0; } }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="scale-wrap" id="scaleWrap">
+      <div class="header">
+        <div>
+          <h1>DUNORTE • ROTA DE ENTREGA</h1>
+          <div class="sub">Data da rota: ${escapeHtml(formatDateBR(data))}</div>
+        </div>
+        <div class="sub">Pedidos em rota: ${pedidos.length}</div>
+      </div>
+      <div class="cards" id="cards">${cards}</div>
+    </div>
+  </div>
+<script>
+(function(){
+  const pageH = 267 * 3.7795275591;
+  const wrap = document.getElementById('scaleWrap');
+  const fit = () => {
+    wrap.style.transform = 'scale(1)';
+    const h = wrap.scrollHeight;
+    const scale = Math.min(1, pageH / Math.max(h, 1));
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (h * scale) + 'px';
+  };
+  window.addEventListener('load', () => { fit(); setTimeout(() => { fit(); window.print(); }, 60); });
+})();
+<\/script>
+</body>
+</html>`;
+}
+
 refs.btnImprimirRota.addEventListener("click", async () => {
-  if (!(await routePedidos()).length) { alert('Não há pedidos com status "EM ROTA DE ENTREGA".'); return; }
-  refs.filtroStatus.value = "EM ROTA DE ENTREGA"; await renderAll(); window.print();
+  const pedidos = await routePedidos();
+  if (!pedidos.length) { alert('Não há pedidos com status "EM ROTA DE ENTREGA".'); return; }
+  const data = refs.dataRota.value || todayISO();
+  const html = gerarHTMLRotaImpressao(pedidos, data);
+  const win = window.open("", "_blank");
+  if (!win) { alert("Pop-up bloqueado! Permita pop-ups para gerar o PDF da rota."); return; }
+  win.document.write(html);
+  win.document.close();
 });
 
 // ─── Busca / filtros ──────────────────────────────────────────────────

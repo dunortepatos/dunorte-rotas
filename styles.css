@@ -123,7 +123,7 @@ textarea{resize:vertical;min-height:90px}
   display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;
 }
 .stats-bar{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;
 }
 .stat-card{
   border:1px solid var(--line);border-radius:18px;background:#fff;padding:12px;
@@ -224,12 +224,15 @@ small{color:var(--muted)}
 /* ── Cards de resumo ── */
 .orders-list.cards-view{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
-  gap:14px;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:12px;
 }
 .order-card.resumo-card{
   cursor:pointer;
-  padding:14px;
+  padding:12px;
+  min-height:188px;
+  display:flex;
+  flex-direction:column;
 }
 .order-card.resumo-card.status-aguardando{
   background:linear-gradient(180deg,#fff,#fbfaf8);
@@ -250,29 +253,30 @@ small{color:var(--muted)}
 }
 .resumo-topo h4{
   margin:0;
-  font-size:20px;
+  font-size:17px;
   line-height:1.15;
 }
 .resumo-cidade{
   color:var(--muted);
-  font-size:14px;
+  font-size:13px;
   margin-top:4px;
 }
 .resumo-itens{
   display:flex;
   flex-direction:column;
   gap:6px;
+  flex:1;
 }
 .resumo-item{
-  border-radius:12px;
-  padding:9px 10px;
+  border-radius:10px;
+  padding:7px 8px;
   background:rgba(255,255,255,.72);
   border:1px solid rgba(231,217,204,.9);
-  font-size:14px;
+  font-size:12px;
 }
 .resumo-item strong{
   display:block;
-  font-size:15px;
+  font-size:13px;
 }
 .resumo-mais{
   margin-top:10px;
@@ -281,7 +285,7 @@ small{color:var(--muted)}
   font-weight:700;
 }
 .click-hint{
-  font-size:12px;
+  font-size:11px;
   color:var(--brown-dark);
   font-weight:700;
   margin-top:10px;
@@ -401,3 +405,18 @@ small{color:var(--muted)}
     line-height:1.15!important;
   }
 }
+
+
+.order-card.resumo-card.status-entrega-futura{
+  background:linear-gradient(180deg,#fff6ec,#ffe8cd);
+  border-color:#f0c898;
+}
+.order-card.resumo-card.status-retirada{
+  background:linear-gradient(180deg,#f7efff,#ead8ff);
+  border-color:#cfb0f5;
+}
+.badge-entrega-futura,.badge.entrega-futura{background:#fff1dd;color:#af6f1a}
+.badge-retirada,.badge.retirada{background:#f1e6ff;color:#6a3bb3}
+.item-highlight-field{margin-top:-2px}
+.item-highlight-toggle{justify-content:flex-start;gap:8px;padding:4px 0}
+.item-highlight-toggle span:last-child{font-size:13px;color:var(--muted)}
