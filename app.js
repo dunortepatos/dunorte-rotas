@@ -136,8 +136,8 @@ const refs = {
   loja: $("loja"), status: $("status"),
   numeroPedido: $("numeroPedido"), nomeCliente: $("nomeCliente"),
   cidade: $("cidade"), bairro: $("bairro"), endereco: $("endereco"),
+  retiradaLojaAtiva: $("retiradaLojaAtiva"), retiradaLojaLocal: $("retiradaLojaLocal"), retiradaLojaSelectWrap: $("retiradaLojaSelectWrap"),
   listaContatos: $("listaContatos"), listaItens: $("listaItens"),
-  fotosPedido: $("fotosPedido"), previewFotos: $("previewFotos"),
   valorTotal: $("valorTotal"), valorEntrada: $("valorEntrada"), valorReceber: $("valorReceber"),
   formaReceber: $("formaReceber"), bancoOuObsPagamento: $("bancoOuObsPagamento"),
   parcelamento: $("parcelamento"),
@@ -214,7 +214,7 @@ refs.loginForm.addEventListener("submit", (e) => {
 });
 refs.btnLogout.addEventListener("click", () => { setLogged(false); showLogin(); });
 
-async function showDashboard() { refs.loginScreen.classList.add("hidden"); refs.dashboardScreen.classList.remove("hidden"); renderAll(); const ok = await verificarExtensaoMaps(); updateMapsShareStatus(ok ? "Extensão do Maps detectada. O botão já pode gerar o link curto." : "Extensão do Maps não detectada. Instale e ative a extensão para usar o link curto automático.", ok ? "ok" : "warn"); }
+function showDashboard() { refs.loginScreen.classList.add("hidden"); refs.dashboardScreen.classList.remove("hidden"); renderAll(); }
 function showLogin()     { refs.dashboardScreen.classList.add("hidden"); refs.loginScreen.classList.remove("hidden"); }
 
 // ─── Utils ────────────────────────────────────────────────────────────
@@ -242,6 +242,7 @@ function addItem(item = null) {
     tpl.querySelector(".item-qtd").value  = item.quantidade || 1;
     tpl.querySelector(".item-nome").value = item.nome || "";
     tpl.querySelector(".item-desc").value = item.descricao || "";
+    tpl.querySelector(".item-destaque").checked = !!item.destacarNaImpressao;
   }
   tpl.querySelector(".remove-btn").addEventListener("click", () => tpl.remove());
   refs.listaItens.appendChild(tpl);
@@ -284,32 +285,13 @@ refs.btnAddContato.addEventListener("click", () => addContato());
 refs.btnAddItem.addEventListener("click", () => addItem());
 refs.btnNovoPedido.addEventListener("click", resetForm);
 refs.btnCancelarEdicao.addEventListener("click", resetForm);
-refs.btnGetMapsShare?.addEventListener("click", handleGetMapsShareLink);
-
-// ─── Fotos ────────────────────────────────────────────────────────────
-refs.fotosPedido.addEventListener("change", async (e) => {
-  const files = [...(e.target.files || [])];
-  for (const file of files) fotosAtuais.push(await fileToBase64(file));
-  renderPhotoPreview(); refs.fotosPedido.value = "";
+refs.retiradaLojaAtiva?.addEventListener("change", () => {
+  refs.retiradaLojaSelectWrap.classList.toggle("hidden", !refs.retiradaLojaAtiva.checked);
+  if (!refs.retiradaLojaAtiva.checked) refs.retiradaLojaLocal.value = "";
 });
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-function renderPhotoPreview() {
-  refs.previewFotos.innerHTML = "";
-  fotosAtuais.forEach((src, index) => {
-    const div = document.createElement("div");
-    div.className = "photo-thumb";
-    div.innerHTML = `<img src="${src}" alt="Foto do pedido"><button type="button">×</button>`;
-    div.querySelector("button").addEventListener("click", () => { fotosAtuais.splice(index,1); renderPhotoPreview(); });
-    refs.previewFotos.appendChild(div);
-  });
-}
+
+// ─── Fotos (removido do cadastro) ────────────────────────────────────────
+function renderPhotoPreview() {}
 
 // ─── Coleta do formulário ─────────────────────────────────────────────
 async function collectForm() {
@@ -317,7 +299,8 @@ async function collectForm() {
   const itens    = [...refs.listaItens.querySelectorAll(".item-card")].map(card => ({
     quantidade: Math.max(1, Number(card.querySelector(".item-qtd").value) || 1),
     nome:       card.querySelector(".item-nome").value.trim(),
-    descricao:  card.querySelector(".item-desc").value.trim()
+    descricao:  card.querySelector(".item-desc").value.trim(),
+    destacarNaImpressao: !!card.querySelector(".item-destaque")?.checked
   })).filter(item => item.nome);
   if (!itens.length) { alert("Adicione pelo menos um item."); return null; }
   const todos    = await getPedidos();
@@ -333,7 +316,9 @@ async function collectForm() {
     cidade:            refs.cidade.value.trim(),
     bairro:            refs.bairro.value.trim(),
     endereco:          refs.endereco.value.trim(),
-    contatos, itens, fotos: fotosAtuais,
+    retiradaLojaAtiva: !!refs.retiradaLojaAtiva.checked,
+    retiradaLojaLocal: refs.retiradaLojaAtiva.checked ? refs.retiradaLojaLocal.value : "",
+    contatos, itens, fotos: original?.fotos || [],
     valorTotal:        parseMoney(refs.valorTotal.value),
     valorEntrada:      parseMoney(refs.valorEntrada.value),
     valorReceber:      parseMoney(refs.valorReceber.value),
@@ -365,11 +350,13 @@ function resetForm() {
   refs.editingBadge.classList.add("hidden");
   refs.btnCancelarEdicao.classList.add("hidden");
   clearRepeats(); addContato(); addItem();
-  fotosAtuais = []; renderPhotoPreview();
   refs.valorReceber.value = "";
   refs.blocoFormaReceber.classList.add("hidden");
   refs.blocoBancoOuDetalhe.classList.add("hidden");
   refs.blocoParcelamento.classList.add("hidden");
+  if (refs.retiradaLojaAtiva) refs.retiradaLojaAtiva.checked = false;
+  if (refs.retiradaLojaLocal) refs.retiradaLojaLocal.value = "";
+  if (refs.retiradaLojaSelectWrap) refs.retiradaLojaSelectWrap.classList.add("hidden");
   resetHighlights();
 }
 
@@ -383,6 +370,9 @@ function fillForm(pedido) {
   refs.cidade.value          = pedido.cidade || "";
   refs.bairro.value          = pedido.bairro || "";
   refs.endereco.value        = pedido.endereco || "";
+  if (refs.retiradaLojaAtiva) refs.retiradaLojaAtiva.checked = !!pedido.retiradaLojaAtiva;
+  if (refs.retiradaLojaLocal) refs.retiradaLojaLocal.value = pedido.retiradaLojaLocal || "";
+  if (refs.retiradaLojaSelectWrap) refs.retiradaLojaSelectWrap.classList.toggle("hidden", !pedido.retiradaLojaAtiva);
   refs.valorTotal.value      = pedido.valorTotal ? pedido.valorTotal.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
   refs.valorEntrada.value    = pedido.valorEntrada ? pedido.valorEntrada.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
   refs.valorReceber.value    = pedido.valorReceber ? pedido.valorReceber.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
@@ -393,7 +383,6 @@ function fillForm(pedido) {
   clearRepeats();
   (pedido.contatos?.length ? pedido.contatos : [""]).forEach(addContato);
   (pedido.itens?.length ? pedido.itens : [null]).forEach(addItem);
-  fotosAtuais = [...(pedido.fotos || [])]; renderPhotoPreview();
   updateReceber(); updatePayFields();
   setHighlightsFromPedido(pedido);
   refs.formTitle.textContent = "Editar pedido";
@@ -412,109 +401,12 @@ function pluralizeItem(nome, qtd) {
   if (/[aeiou]$/i.test(n)) return n + "s";
   return n + "s";
 }
-function mapsLink(p)    { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.endereco}, ${p.cidade}`)}`; }
+function mapsLink(p)    { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${(p.endereco||"").trim()}, ${(p.cidade||"").trim()}`)}`; }
+const TREE_EMOJI = String.fromCodePoint(0x1F333);
+const PIN_EMOJI  = String.fromCodePoint(0x1F4CD);
 function paymentText(p) { const arr=[p.formaReceber]; if(p.parcelamento) arr.push(p.parcelamento); if(p.bancoOuObsPagamento) arr.push(p.bancoOuObsPagamento); return arr.filter(Boolean).join(" • "); }
 function statusClass(status) { return status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"-"); }
 function openWhatsApp(text) { window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank"); }
-
-const DUNORTE_EXT_TIMEOUT = 90000;
-let _mapsRequestSeq = 0;
-
-function updateMapsShareStatus(message, type = "info") {
-  if (!refs.mapsShareStatus) return;
-  refs.mapsShareStatus.textContent = message;
-  refs.mapsShareStatus.classList.remove("status-ok", "status-error", "status-warn", "status-info");
-  refs.mapsShareStatus.classList.add(`status-${type}`);
-}
-
-function enderecoCompletoParaMaps() {
-  const partes = [refs.endereco?.value, refs.cidade?.value].map(v => (v || "").trim()).filter(Boolean);
-  return partes.join(", ");
-}
-
-function pedirLinkCurtoParaExtensao(address) {
-  return new Promise((resolve, reject) => {
-    const requestId = `maps_${Date.now()}_${++_mapsRequestSeq}`;
-    let encerrado = false;
-    const timeout = setTimeout(() => {
-      if (encerrado) return;
-      encerrado = true;
-      window.removeEventListener("message", onMessage);
-      reject(new Error("A extensão demorou demais para responder."));
-    }, DUNORTE_EXT_TIMEOUT);
-
-    function onMessage(event) {
-      const data = event.data || {};
-      if (event.source !== window) return;
-      if (data.source !== "dunorte-extension") return;
-      if (data.requestId !== requestId) return;
-      clearTimeout(timeout);
-      window.removeEventListener("message", onMessage);
-      encerrado = true;
-      if (data.ok) resolve(data.link || "");
-      else reject(new Error(data.error || "Não foi possível obter o link curto."));
-    }
-
-    window.addEventListener("message", onMessage);
-    window.postMessage({ source: "dunorte-site", action: "getShortMapsLink", requestId, address }, "*");
-  });
-}
-
-function verificarExtensaoMaps() {
-  return new Promise((resolve) => {
-    const requestId = `ping_${Date.now()}_${++_mapsRequestSeq}`;
-    let encerrado = false;
-    const timeout = setTimeout(() => {
-      if (encerrado) return;
-      encerrado = true;
-      window.removeEventListener("message", onMessage);
-      resolve(false);
-    }, 1500);
-
-    function onMessage(event) {
-      const data = event.data || {};
-      if (event.source !== window) return;
-      if (data.source !== "dunorte-extension") return;
-      if (data.requestId !== requestId) return;
-      clearTimeout(timeout);
-      window.removeEventListener("message", onMessage);
-      encerrado = true;
-      resolve(!!data.ok);
-    }
-
-    window.addEventListener("message", onMessage);
-    window.postMessage({ source: "dunorte-site", action: "pingExtension", requestId }, "*");
-  });
-}
-
-async function handleGetMapsShareLink() {
-  const address = enderecoCompletoParaMaps();
-  if (!address) {
-    updateMapsShareStatus("Preencha endereço e cidade antes de pedir o link curto.", "warn");
-    alert("Preencha endereço e cidade antes de pedir o link curto.");
-    return;
-  }
-  updateMapsShareStatus("Buscando link curto no Google Maps...", "info");
-  if (refs.btnGetMapsShare) {
-    refs.btnGetMapsShare.disabled = true;
-    refs.btnGetMapsShare.textContent = "Buscando...";
-  }
-  try {
-    const link = await pedirLinkCurtoParaExtensao(address);
-    if (!link) throw new Error("A extensão não retornou um link.");
-    refs.mapsShareLink.value = link;
-    updateMapsShareStatus("Link curto encontrado e salvo neste pedido.", "ok");
-  } catch (err) {
-    console.error(err);
-    updateMapsShareStatus(err.message || "Não foi possível gerar o link curto automaticamente.", "error");
-    alert((err.message || "Não foi possível gerar o link curto automaticamente.") + "\n\nConfira se a extensão está instalada e ativada.");
-  } finally {
-    if (refs.btnGetMapsShare) {
-      refs.btnGetMapsShare.disabled = false;
-      refs.btnGetMapsShare.textContent = "Obter link curto";
-    }
-  }
-}
 
 // ─── Filtragem ────────────────────────────────────────────────────────
 async function filteredPedidos() {
@@ -530,15 +422,19 @@ async function filteredPedidos() {
 
 // ─── Stats ────────────────────────────────────────────────────────────
 function renderStats(todosPedidos) {
-  const total      = todosPedidos.length;
-  const aguardando = todosPedidos.filter(p => p.status === "AGUARDANDO").length;
-  const emRota     = todosPedidos.filter(p => p.status === "EM ROTA DE ENTREGA").length;
-  const entregue   = todosPedidos.filter(p => p.status === "ENTREGUE").length;
+  const total         = todosPedidos.length;
+  const aguardando    = todosPedidos.filter(p => p.status === "AGUARDANDO").length;
+  const emRota        = todosPedidos.filter(p => p.status === "EM ROTA DE ENTREGA").length;
+  const entregue      = todosPedidos.filter(p => p.status === "ENTREGUE").length;
+  const entregaFutura = todosPedidos.filter(p => p.status === "ENTREGA FUTURA").length;
+  const retirada      = todosPedidos.filter(p => p.status === "RETIRADA").length;
   const stats = [
-    {label:"Total",    value:total,      filter:""},
+    {label:"Total", value:total, filter:""},
     {label:"Aguardando", value:aguardando, filter:"AGUARDANDO"},
-    {label:"Em rota",  value:emRota,     filter:"EM ROTA DE ENTREGA"},
-    {label:"Entregues",value:entregue,   filter:"ENTREGUE"}
+    {label:"Entrega futura", value:entregaFutura, filter:"ENTREGA FUTURA"},
+    {label:"Retirada", value:retirada, filter:"RETIRADA"},
+    {label:"Em rota", value:emRota, filter:"EM ROTA DE ENTREGA"},
+    {label:"Entregues", value:entregue, filter:"ENTREGUE"}
   ];
   refs.statsBar.innerHTML = stats.map(stat => `
     <button type="button" class="stat-card filtro-card ${refs.filtroStatus.value===stat.filter ? "ativo" : ""}" data-filter="${stat.filter}">
@@ -623,6 +519,7 @@ async function abrirPedidoModal(id) {
           <p><strong>Endereço:</strong> ${escapeHtml(pedido.endereco||"-")}</p>
           <p><strong>Maps:</strong> <a href="${mapsLink(pedido)}" target="_blank" rel="noopener">Abrir localização</a></p>
           ${pedido.contatos?.length ? `<p><strong>Contatos:</strong> ${escapeHtml(pedido.contatos.join(" • "))}</p>` : ""}
+          ${pedido.retiradaLojaAtiva ? `<p><strong>Retirada do cliente em:</strong> ${escapeHtml(pedido.retiradaLojaLocal || "-")}</p>` : ""}
         </div>
         <div class="box">
           <h5>Financeiro</h5>
@@ -643,11 +540,10 @@ async function abrirPedidoModal(id) {
             </div>
           `).join("")}
         </div>
-        ${pedido.fotos?.length ? `<div class="order-photo-cover">${pedido.fotos.map(src=>`<img src="${src}" alt="Foto do pedido">`).join("")}</div>` : ""}
       </div>
       <div class="order-actions">
         <button class="btn-mini" data-modal-action="editar">Editar</button>
-        <button class="btn-mini" data-modal-action="status">Mover status</button>
+        <button class="btn-mini" data-modal-action="status">Alterar status</button>
         <button class="btn-mini" data-modal-action="whatsapp">WhatsApp</button>
         <button class="btn-mini danger" data-modal-action="excluir">Excluir</button>
         <div class="sort-box">
@@ -667,10 +563,32 @@ refs.pedidoModalBackdrop.addEventListener("click", fecharPedidoModal);
 refs.fecharPedidoModal.addEventListener("click", fecharPedidoModal);
 
 // ─── Ações do card ────────────────────────────────────────────────────
-function nextStatus(atual) {
-  if (atual === "AGUARDANDO") return "EM ROTA DE ENTREGA";
-  if (atual === "EM ROTA DE ENTREGA") return "ENTREGUE";
-  return "AGUARDANDO";
+const STATUS_OPTIONS = ["AGUARDANDO", "ENTREGA FUTURA", "RETIRADA", "EM ROTA DE ENTREGA", "ENTREGUE"];
+
+function showStatusSelectDialog(currentStatus) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "status-select-overlay";
+    overlay.innerHTML = `
+      <div class="status-select-card">
+        <h3>Alterar status</h3>
+        <select id="statusDialogSelect" class="status-select-input">
+          ${STATUS_OPTIONS.map(status => `<option value="${status}" ${status === currentStatus ? "selected" : ""}>${status}</option>`).join("")}
+        </select>
+        <div class="status-select-actions">
+          <button type="button" class="btn btn-light" data-action="cancelar">Cancelar</button>
+          <button type="button" class="btn btn-primary" data-action="confirmar">Salvar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const cleanup = (value) => { overlay.remove(); resolve(value); };
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) cleanup(null);
+    });
+    overlay.querySelector('[data-action="cancelar"]').addEventListener("click", () => cleanup(null));
+    overlay.querySelector('[data-action="confirmar"]').addEventListener("click", () => cleanup(overlay.querySelector("#statusDialogSelect").value));
+  });
 }
 async function handleCardAction(id, action) {
   const todos = await getPedidos();
@@ -678,7 +596,15 @@ async function handleCardAction(id, action) {
   if (i < 0) return;
   if (action === "editar")   { fillForm(todos[i]); return; }
   if (action === "excluir")  { if (!confirm("Deseja excluir este pedido?")) return; await deletePedido(id); await renderAll(); return; }
-  if (action === "status")   { todos[i].status = nextStatus(todos[i].status); todos[i].atualizadoEm = new Date().toISOString(); await savePedido(todos[i]); await renderAll(); return; }
+  if (action === "status") {
+    const novoStatus = await showStatusSelectDialog(todos[i].status);
+    if (!novoStatus || novoStatus === todos[i].status) return;
+    todos[i].status = novoStatus;
+    todos[i].atualizadoEm = new Date().toISOString();
+    await savePedido(todos[i]);
+    await renderAll();
+    return;
+  }
   if (action === "subir") {
     if (i === 0) return;
     [todos[i-1].ordem, todos[i].ordem] = [todos[i].ordem, todos[i-1].ordem];
@@ -708,20 +634,190 @@ function orderWhatsAppText(p) {
 }
 
 // ─── Rota ─────────────────────────────────────────────────────────────
-async function routePedidos() { return (await filteredPedidos()).filter(p => p.status === "EM ROTA DE ENTREGA"); }
-function routeItemSummary(items) { return "🌳 " + items.map(i=>`${i.quantidade} ${pluralizeItem(i.nome,i.quantidade)}`).join(" + "); }
+async function routePedidos() {
+  const todos = await getPedidos();
+  return todos
+    .filter(p => p.status === "EM ROTA DE ENTREGA" || p.retiradaLojaAtiva)
+    .sort((a,b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+}
+function routeItemSummary(items) {
+  return `${TREE_EMOJI} ` + items.map(i => `${i.quantidade} ${pluralizeItem(i.nome, i.quantidade)}`).join(" + ");
+}
 
 refs.btnRotaWhatsapp.addEventListener("click", async () => {
   const pedidos = await routePedidos();
   if (!pedidos.length) { alert('Não há pedidos com status "EM ROTA DE ENTREGA".'); return; }
   const data = refs.dataRota.value || todayISO();
   const lines = [`*ROTA (${formatDateBR(data)})*`, ""];
-  pedidos.forEach(p => { lines.push(`*${p.nomeCliente}*`); lines.push(routeItemSummary(p.itens)); lines.push(`📍 ${mapsLink(p)}`); lines.push(""); });
+  pedidos.forEach(p => {
+    lines.push(`*${p.nomeCliente}*`);
+    lines.push(routeItemSummary(p.itens));
+    lines.push(`${PIN_EMOJI} ${mapsLink(p)}`);
+    lines.push("");
+  });
   openWhatsApp(lines.join("\n").trim());
 });
+
+function getPrintHighlightClass(pedido, field) {
+  return pedido.camposDestacados?.[field] ? "hl-text" : "";
+}
+
+function renderPrintFinanceiro(pedido) {
+  if ((pedido.valorReceber || 0) <= 0) {
+    return `<div class="line"><strong>Pago</strong></div>`;
+  }
+  const linhas = [
+    `<div class="line ${getPrintHighlightClass(pedido, "valorTotal")}"><strong>Total:</strong> ${escapeHtml(formatMoney(pedido.valorTotal))}</div>`,
+    `<div class="line ${getPrintHighlightClass(pedido, "valorEntrada")}"><strong>Entrada:</strong> ${escapeHtml(formatMoney(pedido.valorEntrada))}</div>`,
+    `<div class="line ${getPrintHighlightClass(pedido, "valorReceber")}"><strong>A receber:</strong> ${escapeHtml(formatMoney(pedido.valorReceber))}</div>`
+  ];
+  if (pedido.formaReceber) {
+    linhas.push(`<div class="line ${getPrintHighlightClass(pedido, "formaReceber")} ${getPrintHighlightClass(pedido, "bancoOuObsPagamento")} ${getPrintHighlightClass(pedido, "parcelamento")}"><strong>Pagamento:</strong> ${escapeHtml(paymentText(pedido))}</div>`);
+  }
+  return linhas.join("");
+}
+
+function gerarHTMLRotaImpressao(pedidos, data) {
+  const pedidosEntrega = pedidos.filter(p => !p.retiradaLojaAtiva);
+  const pedidosRetirada = pedidos.filter(p => p.retiradaLojaAtiva);
+
+  function renderCard(p, isRetirada = false) {
+    const itens = (p.itens || []).map(item => `
+      <div class="item-row"><span class="${item.destacarNaImpressao ? "hl-text" : ""}"><strong>${escapeHtml(`${item.quantidade} ${pluralizeItem(item.nome, item.quantidade)}`)}</strong>${item.descricao ? ` ${escapeHtml(item.descricao)}` : ""}</span></div>
+    `).join("");
+
+    const enderecoPartes = isRetirada
+      ? [p.endereco?.trim(), p.bairro ? `Bairro: ${p.bairro}` : "", p.cidade ? `Cidade: ${p.cidade}` : ""].filter(Boolean).join("   ")
+      : [p.endereco?.trim(), p.bairro ? `Bairro: ${p.bairro}` : "", p.cidade ? `Cidade: ${p.cidade}` : ""].filter(Boolean).join("   ");
+
+    if (isRetirada) {
+      return `
+        <article class="print-card retirada-card">
+          <div class="print-head retirada-head">
+            <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")} <span class="retirada-date ${getPrintHighlightClass(p, "dataPedido")}">• ${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
+            <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
+          </div>
+          <div class="meta-grid retirada-meta-grid">
+            ${p.retiradaLojaAtiva ? `<div class="line"><strong>Retirar em:</strong> <span>${escapeHtml(p.retiradaLojaLocal || "-")}</span></div>` : ""}
+          </div>
+          <div class="line endereco-line ${getPrintHighlightClass(p, "endereco")} ${getPrintHighlightClass(p, "bairro")} ${getPrintHighlightClass(p, "cidade")}"><strong>Endereço:</strong> <span>${escapeHtml(enderecoPartes || "-")}</span></div>
+          ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> <span>${escapeHtml(p.contatos.join(" | "))}</span></div>` : ""}
+          <div class="section-title">Itens</div>
+          <div class="items-block">${itens}</div>
+          <div class="section-title">Financeiro</div>
+          <div class="finance-block">${renderPrintFinanceiro(p)}</div>
+          ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs"><span class="${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</span></div>` : ""}
+        </article>
+      `;
+    }
+
+    return `
+      <article class="print-card">
+        <div class="print-head">
+          <div class="client ${getPrintHighlightClass(p, "nomeCliente")}">${escapeHtml(p.nomeCliente || "-")}</div>
+          <div class="pedido-num ${getPrintHighlightClass(p, "numeroPedido")}">Pedido ${escapeHtml(p.numeroPedido || "-")}</div>
+        </div>
+        <div class="meta-grid">
+          <div class="line ${getPrintHighlightClass(p, "loja")}"><strong>Loja:</strong> <span>${escapeHtml(p.loja || "-")}</span></div>
+          <div class="line ${getPrintHighlightClass(p, "dataPedido")}"><strong>Data:</strong> <span>${escapeHtml(formatDateBR(p.dataPedido || ""))}</span></div>
+          <div class="line ${getPrintHighlightClass(p, "status")}"><strong>Status:</strong> <span>${escapeHtml(p.status || "-")}</span></div>
+        </div>
+        <div class="line endereco-line ${getPrintHighlightClass(p, "endereco")} ${getPrintHighlightClass(p, "bairro")} ${getPrintHighlightClass(p, "cidade")}"><strong>Endereço:</strong> <span>${escapeHtml(enderecoPartes || "-")}</span></div>
+        ${p.contatos?.length ? `<div class="line"><strong>Contato:</strong> <span>${escapeHtml(p.contatos.join(" | "))}</span></div>` : ""}
+        <div class="section-title">Itens</div>
+        <div class="items-block">${itens}</div>
+        <div class="section-title">Financeiro</div>
+        <div class="finance-block">${renderPrintFinanceiro(p)}</div>
+        ${p.observacoes ? `<div class="section-title">Observações</div><div class="obs"><span class="${getPrintHighlightClass(p, "observacoes")}">${escapeHtml(p.observacoes)}</span></div>` : ""}
+      </article>
+    `;
+  }
+
+  const cardsEntrega = pedidosEntrega.map(p => renderCard(p, false)).join("");
+  const cardsRetirada = pedidosRetirada.map(p => renderCard(p, true)).join("");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rota ${escapeHtml(formatDateBR(data))}</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  :root { --paper-w: 195mm; --paper-h: 282mm; --lime: #eef8a8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: var(--paper-w); height: var(--paper-h); overflow: hidden; margin: 7.5mm auto; }
+  .scale-wrap { width: 180mm; transform-origin: top left; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:10px; }
+  .header h1 { margin:0; font-size:16px; }
+  .header .sub { font-size:10px; color:#444; }
+  .section-heading { font-size:11px; font-weight:700; text-transform:uppercase; margin:0 0 6px; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-content:start; }
+  .print-card { border:1px solid #333; border-radius:8px; padding:8px 9px; break-inside:avoid; background:#fff; }
+  .print-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; align-items:flex-start; }
+  .client { font-size:12px; font-weight:700; line-height:1.15; }
+  .pedido-num { font-size:10px; text-align:right; white-space:nowrap; }
+  .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin-bottom:4px; }
+  .line, .obs, .item-row { font-size:9.4px; line-height:1.24; padding:1px 0; }
+  .section-title { font-size:9px; font-weight:700; text-transform:uppercase; margin:6px 0 2px; color:#333; }
+  .items-block, .finance-block { display:flex; flex-direction:column; gap:2px; }
+  .obs { color:#9b1c1c; font-weight:600; }
+  .hl-text { background: var(--lime); display:inline; padding:1px 3px; border-radius:2px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+  .retirada-group { margin-top: 12px; padding-top: 8px; border-top: 1px solid #444; }
+  .retirada-head { margin-bottom: 4px; }
+  .retirada-date { font-weight: 700; }
+  .retirada-meta-grid { display:block; margin-bottom: 3px; }
+  @media print { html, body { width: 210mm; height: 297mm; } }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="scale-wrap" id="scaleWrap">
+      <div class="header">
+        <div>
+          <h1>DUNORTE • ROTA DE ENTREGA</h1>
+          <div class="sub">Data da rota: ${escapeHtml(formatDateBR(data))}</div>
+        </div>
+        <div class="sub">Pedidos na folha: ${pedidos.length}</div>
+      </div>
+      <div class="section-heading">ENTREGAS EM ROTA</div>
+      <div class="cards">${cardsEntrega}</div>
+      ${cardsRetirada ? `<div class="retirada-group"><div class="section-heading">LEVAR PARA LOJA • CLIENTE IRÁ RETIRAR</div><div class="cards">${cardsRetirada}</div></div>` : ""}
+    </div>
+  </div>
+<script>
+(function(){
+  const mm = 3.7795275591;
+  const pageW = 195 * mm;
+  const pageH = 282 * mm;
+  const wrap = document.getElementById('scaleWrap');
+  const fit = () => {
+    wrap.style.transform = 'scale(1)';
+    wrap.style.height = 'auto';
+    const w = wrap.scrollWidth;
+    const h = wrap.scrollHeight;
+    const scale = Math.min(pageW / Math.max(w, 1), pageH / Math.max(h, 1));
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (h * scale) + 'px';
+  };
+  window.addEventListener('load', () => { fit(); setTimeout(() => { fit(); window.print(); }, 80); });
+})();
+<\/script>
+</body>
+</html>`;
+}
+
 refs.btnImprimirRota.addEventListener("click", async () => {
-  if (!(await routePedidos()).length) { alert('Não há pedidos com status "EM ROTA DE ENTREGA".'); return; }
-  refs.filtroStatus.value = "EM ROTA DE ENTREGA"; await renderAll(); window.print();
+  const pedidos = await routePedidos();
+  if (!pedidos.length) { alert('Não há pedidos com status "EM ROTA DE ENTREGA".'); return; }
+  const data = refs.dataRota.value || todayISO();
+  const html = gerarHTMLRotaImpressao(pedidos, data);
+  const win = window.open("", "_blank");
+  if (!win) { alert("Pop-up bloqueado! Permita pop-ups para gerar o PDF da rota."); return; }
+  win.document.write(html);
+  win.document.close();
 });
 
 // ─── Busca / filtros ──────────────────────────────────────────────────
