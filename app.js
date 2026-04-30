@@ -1007,5 +1007,5 @@ document.addEventListener("keydown", (e) => {
   await migrarLocalStorage();
   initHighlightCheckboxes();
   resetForm();
-  if (isLogged()) showDashboard(); else showLogin();
+  showDashboard();
 })();
